@@ -1,0 +1,20 @@
+[project]
+name = "real_estate_price_prediction"
+version = "0.1.0"
+description = "ML end-to-end project focus on MLOps, models build from scratch and application"
+authors = [
+    {name = "sztyberj",email = "jakub.sztyber.97@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas (>=2.2.3,<3.0.0)",
+    "numpy (>=2.2.4,<3.0.0)",
+    "selenium (>=4.30.0,<5.0.0)",
+    "webdriver-manager (>=4.0.2,<5.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

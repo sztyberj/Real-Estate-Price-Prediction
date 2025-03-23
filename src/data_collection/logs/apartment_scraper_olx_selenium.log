@@ -1,0 +1,18 @@
+2025-03-23 23:15:25,198 - INFO - ====== WebDriver manager ======
+2025-03-23 23:15:25,857 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 23:15:26,046 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 23:15:26,244 - INFO - Driver [C:\Users\Jakub\.wdm\drivers\chromedriver\win64\134.0.6998.165\chromedriver-win32/chromedriver.exe] found in cache
+2025-03-23 23:15:27,312 - INFO - Processing page: https://www.olx.pl/d/nieruchomosci/mieszkania/sprzedaz/warszawa/?page=2
+2025-03-23 23:15:34,915 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/4-pokoje-blisko-parku-szczesliwickiego-ID4usIo.html
+2025-03-23 23:15:43,263 - WARNING - No date found or parsing error for https://www.olx.pl/d/oferta/nowe-2-3-pok-mokotow-wislany-duzy-ogrod-miejsce-postojowe-okazja-CID3-ID14Xkqf.html
+2025-03-23 23:15:43,333 - INFO - Scraped: https://www.olx.pl/d/oferta/nowe-2-3-pok-mokotow-wislany-duzy-ogrod-miejsce-postojowe-okazja-CID3-ID14Xkqf.html
+2025-03-23 23:15:46,693 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/muranow-srodmiescie-38-m2-idealna-inwestycja-ID4wyRM.html
+2025-03-23 23:15:48,719 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/mieszkanie-36mpo-remoncie2pokojebalkonpiwnica-ID4whIB.html
+2025-03-23 23:15:51,930 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/segment-115m2-swietna-lokalizacja-450m-do-skm-ID4wxq1.html
+2025-03-23 23:15:55,713 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/4-pokojowe-mieszkanie-w-przystepnej-cenie-ID4tLTx.html
+2025-03-23 23:16:04,465 - INFO - Scraped: https://www.olx.pl/d/oferta/bezposrednio-elegancki-apartament-goclaw-74-m-CID3-ID12HAMI.html
+2025-03-23 23:16:06,770 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/3-pokoje-do-wprowadzenia-aluzyjna-ID4uRJS.html
+2025-03-23 23:16:09,950 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/pileckiego130a-4-pokoje-taras18m2-garaz-piwnica-ID4wnkW.html
+2025-03-23 23:16:12,010 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/kamienica-2-pokoje45m2-z-balkonem-po-remoncie-ID4w3Rn.html
+2025-03-23 23:16:18,678 - INFO - Scraped: https://www.olx.pl/d/oferta/stegny-3-osobne-pokoje-loggia-ul-capri-blisko-tvn-CID3-ID14GAa4.html
+2025-03-23 23:16:22,008 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/3-pokojowe-mieszkanie-63-46m2-klimatyzacja-ID4wvR8.html

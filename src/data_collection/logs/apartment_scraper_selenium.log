@@ -1,0 +1,12 @@
+2025-03-23 22:56:36,446 - INFO - ====== WebDriver manager ======
+2025-03-23 22:56:37,135 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 22:56:37,398 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 22:56:37,584 - INFO - Driver [C:\Users\Jakub\.wdm\drivers\chromedriver\win64\134.0.6998.165\chromedriver-win32/chromedriver.exe] found in cache
+2025-03-23 22:56:39,139 - INFO - Processing page: https://www.olx.pl/d/nieruchomosci/mieszkania/sprzedaz/warszawa/?page=1
+2025-03-23 22:56:50,555 - WARNING - No date found or parsing error for https://www.olx.pl/d/oferta/sprzedam-bezposrednio-4-pok-2-laz-2-balk-2-m-postojowe-CID3-ID14X1iM.html
+2025-03-23 22:56:50,632 - INFO - Scraped: https://www.olx.pl/d/oferta/sprzedam-bezposrednio-4-pok-2-laz-2-balk-2-m-postojowe-CID3-ID14X1iM.html
+2025-03-23 22:56:56,826 - WARNING - No date found or parsing error for https://www.olx.pl/d/oferta/sloneczny-apartament-na-nowej-marinie-mokotow-CID3-ID14XbQz.html
+2025-03-23 22:56:56,895 - INFO - Scraped: https://www.olx.pl/d/oferta/sloneczny-apartament-na-nowej-marinie-mokotow-CID3-ID14XbQz.html
+2025-03-23 22:57:04,066 - WARNING - No date found or parsing error for https://www.olx.pl/d/oferta/apartament-125-27m2-ogrodek-250m2-warszawa-wilanow-CID3-IDAoeZf.html
+2025-03-23 22:57:04,130 - INFO - Scraped: https://www.olx.pl/d/oferta/apartament-125-27m2-ogrodek-250m2-warszawa-wilanow-CID3-IDAoeZf.html
+2025-03-23 22:57:08,065 - INFO - Skipping Otodom URL: https://www.otodom.pl/pl/oferta/sloneczne-mieszkanie-z-potencjalem-na-3-pokoje-ID4wkxP.html

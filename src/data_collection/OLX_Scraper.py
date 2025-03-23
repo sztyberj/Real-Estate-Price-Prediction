@@ -3,6 +3,7 @@ import csv
 import time
 import random
 import re
+import argparse
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,7 +15,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("apartment_scraper_selenium.log"),
+        logging.FileHandler("logs/apartment_scraper_olx_selenium.log"),
         logging.StreamHandler()
     ]
 )
@@ -144,20 +145,23 @@ def save_to_file(name, records):
         writer.writerows(records)
     logging.info(f"Data successfully saved to {name}")
 
-def main():
+def main(start_page, max_pages):
     driver = setup_driver()
-    max_pages = 50  # Możesz zwiększyć liczbę stron
 
-    for count in range(1, max_pages + 1):
+    for count in range(start_page, max_pages + 1):
         current_url = f"{warsaw_url}{count}"
         logging.info(f"Processing page: {current_url}")
         scrap_olx_for_urls(driver, current_url)
         if count % 5 == 0:
-            save_to_file("temp_olx_selenium.csv", records_olx)
+            save_to_file(f"tmp/tmp_olx_{count}.csv", records_olx)
         time.sleep(random.uniform(3, 6))
 
     save_to_file(f'raw_olx_{datetime.now().strftime("%d%m%Y%H%M%S")}.csv', records_olx)
     driver.quit()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Scrape OLX with Selenium")
+    parser.add_argument('--start_page', type=int, default=1, help='First page to scrape')
+    parser.add_argument('--max_pages', type=int, default=1, help='Number of pages to scrape')
+    args = parser.parse_args()
+    main(args.start_page, args.max_pages)

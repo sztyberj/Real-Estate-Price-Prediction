@@ -1,0 +1,24 @@
+2025-03-23 23:04:22,970 - INFO - ====== WebDriver manager ======
+2025-03-23 23:04:23,630 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 23:04:23,820 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 23:04:23,967 - INFO - Driver [C:\Users\Jakub\.wdm\drivers\chromedriver\win64\134.0.6998.165\chromedriver-win32/chromedriver.exe] found in cache
+2025-03-23 23:04:25,029 - INFO - Starting Otodom scraper with Selenium...
+2025-03-23 23:04:25,029 - INFO - Processing page: https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?page=1
+2025-03-23 23:04:31,195 - INFO - Found 30 listings on page
+2025-03-23 23:04:42,701 - INFO - Scraped: https://www.otodom.pl/pl/oferta/stegny-3-pokoje-idealny-metraz-i-uklad-ID4wzGx
+2025-03-23 23:04:58,148 - INFO - Scraped: https://www.otodom.pl/pl/oferta/zarezerwowane-sprzedam-kawalerke-przy-metrze-ID4uJw0
+2025-03-23 23:05:11,088 - INFO - Scraped: https://www.otodom.pl/hpr/pl/oferta/3-pokoje-garaz-19-m2-balkon-do-wejscia-ID4wyx7
+2025-03-23 23:05:11,123 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectionResetError(10054, 'Istniej¹ce po³¹czenie zosta³o gwa³townie zamkniête przez zdalnego hosta', None, 10054, None)': /session/f34173e62bd0868f8d67f1de31c604e7
+2025-03-23 23:05:15,199 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000160CB39C280>: Failed to establish a new connection: [WinError 10061] Nie mo¿na nawi¹zaæ po³¹czenia, poniewa¿ komputer docelowy aktywnie go odmawia')': /session/f34173e62bd0868f8d67f1de31c604e7
+2025-03-23 23:05:19,291 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000160CB39C6A0>: Failed to establish a new connection: [WinError 10061] Nie mo¿na nawi¹zaæ po³¹czenia, poniewa¿ komputer docelowy aktywnie go odmawia')': /session/f34173e62bd0868f8d67f1de31c604e7
+2025-03-23 23:16:52,979 - INFO - ====== WebDriver manager ======
+2025-03-23 23:16:53,638 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 23:16:53,780 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-23 23:16:53,914 - INFO - Driver [C:\Users\Jakub\.wdm\drivers\chromedriver\win64\134.0.6998.165\chromedriver-win32/chromedriver.exe] found in cache
+2025-03-23 23:16:54,961 - INFO - Starting Otodom scraper with Selenium...
+2025-03-23 23:16:54,961 - INFO - Processing page: https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?page=2
+2025-03-23 23:17:00,777 - INFO - Found 27 listings on page
+2025-03-23 23:17:08,798 - INFO - Scraped: https://www.otodom.pl/pl/oferta/2-pokoje-38m2-na-zielonym-osiedlu-saska-kepa-ID4uxFM
+2025-03-23 23:17:17,628 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectionResetError(10054, 'Istniej¹ce po³¹czenie zosta³o gwa³townie zamkniête przez zdalnego hosta', None, 10054, None)': /session/c6a3646096157293fa010046a9c01e4f
+2025-03-23 23:17:21,744 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001405CDA3700>: Failed to establish a new connection: [WinError 10061] Nie mo¿na nawi¹zaæ po³¹czenia, poniewa¿ komputer docelowy aktywnie go odmawia')': /session/c6a3646096157293fa010046a9c01e4f
+2025-03-23 23:17:25,860 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001405CDA3BE0>: Failed to establish a new connection: [WinError 10061] Nie mo¿na nawi¹zaæ po³¹czenia, poniewa¿ komputer docelowy aktywnie go odmawia')': /session/c6a3646096157293fa010046a9c01e4f

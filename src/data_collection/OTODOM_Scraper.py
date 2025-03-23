@@ -3,6 +3,7 @@ import csv
 import time
 import random
 import re
+import argparse
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -18,7 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("apartment_scraper_otodom_selenium.log"),
+        logging.FileHandler("logs/apartment_scraper_otodom_selenium.log"),
         logging.StreamHandler()
     ]
 )
@@ -288,16 +289,14 @@ def save_to_file(name, records):
     except Exception as e:
         logging.error(f"Error saving data to {name}: {e}")
 
-def main():
+def main(start_page: int ,max_pages: int):
     """Main function to control the scraping process."""
-    max_pages = 1  # Adjust as needed
-    start_page = 1
     
     driver = setup_driver()
     logging.info("Starting Otodom scraper with Selenium...")
     
     try:
-        for count in range(start_page, max_pages + 1):
+        for count in range(start_page, start_page + max_pages):
             current_url = f"{otodom_url}{count}"
             logging.info(f"Processing page: {current_url}")
             
@@ -305,18 +304,22 @@ def main():
             
             # Save intermediate results every 5 pages
             if count % 5 == 0 or count == max_pages:
-                save_to_file(f"temp_otodom_selenium_{count}.csv", records_otodom)
+                save_to_file(f"tmp/tmp_otodom_{count}.csv", records_otodom)
             
             # Variable delay between pages
             time.sleep(random.uniform(5, 10))
         
         # Save final results
         timestamp = datetime.now().strftime("%d%m%Y%H%M%S")
-        save_to_file(f'raw_otodom_selenium_{timestamp}.csv', records_otodom)
+        save_to_file(f'raw_otodom_{timestamp}.csv', records_otodom)
         logging.info("Scraping completed successfully")
     
     finally:
         driver.quit()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Scrape OTODOM with Selenium")
+    parser.add_argument('--start_page', type=int, default=1, help='First page to scrape')
+    parser.add_argument('--max_pages', type=int, default=1, help='Number of pages to scrape')
+    args = parser.parse_args()
+    main(args.start_page, args.max_pages)
