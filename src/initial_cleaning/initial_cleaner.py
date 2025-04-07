@@ -25,15 +25,27 @@ class InitialCleaner:
         df['price'] = df['price'].replace("", np.nan).astype("Int64")
         return df
 
+    def clean_area(self, df):
+        try:
+            df['area'] = df['area'].str.replace(',', '.').astype(float)
+        except:
+            print("")
+        return df
+    
     def clean_ppm(self, df):
         self.logger.info("Cleaning price per meter...")
         df['price_per_meter'] = df['price_per_meter'].str.replace(r"[^\d]", "", regex=True)
+        df = df[(df['price'].notnull()) & (df['area'].notnull()) & (df['area'] != 0)]
+        df['price_per_meter'] = df['price'] / df['area']
+        df['price_per_meter'] = df['price_per_meter'].round(2)
+
         return df
 
     def clean_floor(self, df):
         self.logger.info("Cleaning floor...")
         df['floor'] = df['floor'].str.split("/").str[0]
         df.loc[df['floor'].astype(str).str.lower().str.contains("parter", na=False), 'floor'] = 0
+        df.loc[df['floor'].astype(str).str.lower().str.contains("suterena", na=False), 'floor'] = -1
         return df
 
     def clean_furnished(self, df):
@@ -58,7 +70,9 @@ class InitialCleaner:
 
     def olx(self, df):
         self.logger.info("Starting initial cleaning pipeline for olx...")
+        print(df.columns)
         df = self.clean_price(df)
+        df = self.clean_area(df)
         df = self.clean_ppm(df)
         df = self.clean_floor(df)
         df = self.clean_furnished(df)
@@ -68,6 +82,7 @@ class InitialCleaner:
     def oto(self, df):
         self.logger.info("Starting initial cleaning pipeline for olx...")
         df = self.clean_price(df)
+        df = self.clean_area(df)
         df = self.clean_ppm(df)
         df = self.clean_floor(df)
         df = self.clean_furnished(df)
@@ -82,6 +97,7 @@ if __name__ == "__main__":
     # Test data
     df_test = pd.DataFrame({
         "price": ["1 200 000 zł", "999.000", ""],
+        "area": ["58,5", "22", "31.8"],
         "price_per_meter": ["10 000 zł", "12.345", ""],
         "floor": ["3/10", "parter", "7"],
         "furnished": ["Tak", "Nie", None],
