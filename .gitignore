@@ -2,3 +2,6 @@
 .venv/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
+src/data_collection/tmp
+__pycache__/
+*.log
