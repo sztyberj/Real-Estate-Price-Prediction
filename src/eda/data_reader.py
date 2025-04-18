@@ -3,7 +3,7 @@ import os
 import sys
 import logging
 import pandas as pd
-sys.path.append("../data/cleanup")
+from pathlib import Path
 
 # Logging config
 logging.basicConfig(
@@ -14,31 +14,33 @@ logging.basicConfig(
     ]
 )
 
+THIS_FILE = Path(__file__).resolve()
+ROOT_DIR  = THIS_FILE.parents[2]
+DATA_DIR = ROOT_DIR / "data" / "raw"
+
 class DataReader:
-    def __init__(self, input_dir = "../data/cleanup/"):
+    def __init__(self, input_dir: str = DATA_DIR, ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.input_dir = input_dir
 
-    def read(self):
-        self.frames_olx = []
-        self.frames_oto = []
+    def read(self) -> pd.DataFrame:
+        self.frames_df = []
         for filename in os.listdir(self.input_dir):
-            if "olx" in filename and filename.endswith(".csv"):
-                tmp = pd.read_csv(os.path.join(self.input_dir, filename))
-                self.frames_olx.append(self.tmp)
-            if "oto" in filename and filename.endswith(".csv"):
-                tmp = pd.read_csv(os.path.join(self.input_dir, filename))
-                self.frames_oto.append(self.tmp)
-        self.pd_olx = pd.concat(self.frames_olx, ignore_index=True) if self.frames_olx else pd.DataFrame()
-        self.pd_oto = pd.concat(self.frames_oto, ignore_index=True) if self.frames_oto else pd.DataFrame()
+            if filename.endswith(".csv"):
+                tmp = pd.read_csv(os.path.join(self.input_dir, filename), sep=";")
+                self.frames_df.append(tmp)
 
-        return self.pd_olx, self.pd_oto
+        self.df = pd.concat(self.frames_df, ignore_index=True) if self.frames_df else pd.DataFrame()
+
+        return self.df
     
-
 
 if __name__ == "__main__":
     reader = DataReader()
 
-    olx, oto = reader.read()
-
-    print(olx.head(5))
+    df = reader.read()
+    print(df.info())
+    print(df.head(5))
+	
+	
+	
