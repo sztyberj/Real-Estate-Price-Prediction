@@ -1,330 +1,326 @@
-import logging
+### Build with LLM 
+
+from __future__ import annotations
 import csv
-import time
+import json
+import logging
 import random
 import re
-import argparse
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from webdriver_manager.chrome import ChromeDriverManager
+from pathlib import Path
+from typing import List, Optional
+from urllib.parse import urljoin
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-RAW_PATH = os.path.join(BASE_DIR, 'data', 'raw')
+import requests
+from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-# Setup logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("logs/apartment_scraper_otodom_selenium.log"),
-        logging.StreamHandler()
-    ]
+# --------------- progress‑bar (optional) ---------------------------------
+try:
+    from tqdm import tqdm          
+except ImportError:                
+    tqdm = None
+
+# ---------------------------------------------------------------------------
+# CONFIG
+# ---------------------------------------------------------------------------
+BASE_URL   = "https://www.otodom.pl"
+LISTING_URL = (
+    "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/mazowieckie/"
+    "warszawa?page="
 )
 
-# Constants
-otodom_url = 'https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?page='
+# --- project paths -------------------------------------------------------
+THIS_FILE = Path(__file__).resolve()
+ROOT_DIR  = THIS_FILE.parents[2]          # …/Real Estate Price Prediction
+RAW_DIR   = ROOT_DIR / "data" / "raw"
+LOG_DIR   = ROOT_DIR / "src" / "data_collection" / "logs" 
+TMP_DIR   = ROOT_DIR / "data" / "tmp"
+for d in (RAW_DIR, LOG_DIR, TMP_DIR):
+    d.mkdir(parents=True, exist_ok=True)
 
-# Unified field names to match OLX scraper
-field_names = [
-    'source', 'price', 'price_per_meter', 'area', 'rooms', 'floor',
-    'market_type', 'furnished', 'description',
-    'district', 'date', 'url', 'title'
+# --- network params --------------------------------------------------------
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+]
+REQUEST_TIMEOUT     = 15
+MAX_RETRIES         = 4          
+BASE_DELAY_SEC      = 1.2        
+PARTIAL_SAVE_EVERY  = 5          
+
+# --- logger -----------------------------------------------------------------
+LOG_FMT  = "%(asctime)s | %(levelname)-8s | %(threadName)s | %(message)s"
+DATE_FMT = "%Y-%m-%d %H:%M:%S"
+logging.basicConfig(
+    level=logging.INFO,
+    format=LOG_FMT,
+    datefmt=DATE_FMT,
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(LOG_DIR / f"otodom_{datetime.now():%Y%m%d}.log",
+                            encoding="utf-8"),
+    ],
+    force=True,
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# UTILS – GET (retry + exponential back‑off + delay)
+# ---------------------------------------------------------------------------
+_SESSION = requests.Session()
+retry_strategy = Retry(
+    total=MAX_RETRIES,
+    status_forcelist=[403, 429, 500, 502, 503, 504],
+    allowed_methods=["GET"],
+    backoff_factor=BASE_DELAY_SEC,
+    raise_on_status=False,
+)
+_SESSION.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+
+def request_with_retry(url: str) -> requests.Response:
+    hdr = {"User-Agent": random.choice(USER_AGENTS)}
+    resp = _SESSION.get(url, headers=hdr, timeout=REQUEST_TIMEOUT)
+    if resp.status_code >= 400:
+        logger.warning("HTTP %s → %s", resp.status_code, url)
+    time.sleep(random.uniform(BASE_DELAY_SEC * 0.8, BASE_DELAY_SEC * 1.2))
+    return resp
+
+# ---------------------------------------------------------------------------
+# MODEL
+# ---------------------------------------------------------------------------
+FIELD_NAMES = [
+    "source","price","price_per_meter","area","rooms","floor","market_type",
+    "furnished","description","district","date","url","title","building_type",
+    "year_built","rent","finish_status","ownership","heating","elevator",
+    "ad_id","external_id",
 ]
 
-# CSS Selectors for various fields based on provided selectors
-SELECTORS = {
-    'floor': "body > div:nth-child(1) > div:nth-child(1) > main:nth-child(4) > div:nth-child(4) > div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(3) > p:nth-child(2)",
-    'market_type': "div:nth-child(9) p:nth-child(2)",
-    'furnished': "div:nth-child(7) p:nth-child(2)",
-    'description': "div[class='css-tn073k e2qsm8l0'] ul:nth-child(1) li:nth-child(1)",
-    'date': ".eddsrqr5.css-xydenf",
-}
+@dataclass
+class PropertyRecord:
+    source: str = "otodom"
+    price: str = ""
+    price_per_meter: str = ""
+    area: str = ""
+    rooms: str = ""
+    floor: str = ""
+    market_type: str = ""
+    furnished: str = ""
+    description: str = ""
+    district: str = ""
+    date: str = ""
+    url: str = ""
+    title: str = ""
+    building_type: str = ""
+    year_built: str = ""
+    rent: str = ""
+    finish_status: str = ""
+    ownership: str = ""
+    heating: str = ""
+    elevator: str = ""
+    ad_id: str = ""
+    external_id: str = ""
 
-records_otodom = []
+    def to_list(self) -> List[str]:
+        return [getattr(self, f, "") for f in FIELD_NAMES]
 
-def setup_driver():
-    """Set up Selenium WebDriver with necessary options."""
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-notifications")
-    options.add_argument("--disable-popup-blocking")
-    # Add more diverse user-agents to avoid detection
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
-    ]
-    options.add_argument(f"user-agent={random.choice(user_agents)}")
-    
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    return driver
+# ---------------------------------------------------------------------------
+# LISTING SCRAPER
+# ---------------------------------------------------------------------------
+class ListingScraper:
+    @staticmethod
+    def fetch_listing(page: int) -> list[str]:
+        url = f"{LISTING_URL}{page}"
+        html = request_with_retry(url).text
+        soup = BeautifulSoup(html, "lxml")
+        links = [
+            a["href"] for a in soup.select("a[data-cy='listing-item-link']")
+            if a.has_attr("href")
+        ]
+        return [urljoin(BASE_URL, l) for l in links]
 
-def extract_text_safe(driver, selector, by=By.CSS_SELECTOR, wait_time=3):
-    """Safely extract text from element with error handling."""
-    try:
-        element = WebDriverWait(driver, wait_time).until(
-            EC.presence_of_element_located((by, selector))
-        )
-        return element.text.strip()
-    except (NoSuchElementException, TimeoutException):
+# ---------------------------------------------------------------------------
+# OFFER SCRAPER
+# ---------------------------------------------------------------------------
+class OfferScraper:
+    JSON_RE = re.compile(r"<script id=\"__NEXT_DATA__\"[^>]*>(.*?)</script>", re.S)
+
+    @staticmethod
+    def _get_characteristic(lst, key, attr="value") -> str:
+        for c in lst:
+            if c.get("key") == key:
+                return c.get(attr) or c.get("localizedValue", "")
         return ""
 
-def extract_elements_safe(driver, selector, by=By.CSS_SELECTOR, wait_time=3):
-    """Safely extract multiple elements with error handling."""
-    try:
-        elements = WebDriverWait(driver, wait_time).until(
-            EC.presence_of_all_elements_located((by, selector))
-        )
-        return elements
-    except (NoSuchElementException, TimeoutException):
-        return []
+    @staticmethod
+    def _yes_no(lst, key) -> str:
+        return "Tak" if OfferScraper._get_characteristic(lst, key) else "Nie"
 
-def extract_property_details_with_selectors(driver, record_dict):
-    """Extract property details using the provided CSS selectors."""
-    # Extract floor
-    record_dict['floor'] = extract_text_safe(driver, SELECTORS['floor'])
-    
-    # Extract market type
-    record_dict['market_type'] = extract_text_safe(driver, SELECTORS['market_type'])
-    
-    # Extract furnished status
-    furnished_text = extract_text_safe(driver, SELECTORS['furnished'])
-    if furnished_text:
-        record_dict['furnished'] = "Tak" if furnished_text.lower() not in ["nie", "brak"] else "Nie"
-    
-    # Extract description
-    record_dict['description'] = extract_text_safe(driver, SELECTORS['description'])
-    
-    # Extract date
-    date_text = extract_text_safe(driver, SELECTORS['date'])
-    if date_text:
-        date_match = re.search(r'(\d{2})[./](\d{2})[./](\d{4})', date_text)
-        if date_match:
-            day, month, year = date_match.groups()
-            record_dict['date'] = f"{year}-{month}-{day}"
+    @staticmethod
+    def _compose_floor(lst) -> str:
+        fl  = OfferScraper._get_characteristic(lst, "floor_no", "localizedValue")
+        tot = OfferScraper._get_characteristic(lst, "building_floors_num")
+        return f"{fl}/{tot}" if fl and tot else fl or ""
 
-def extract_property_details_fallback(driver, record_dict):
-    """Fallback method to extract property details from the listing page."""
-    # Target both types of property detail containers
-    detail_selectors = [
-        "div.css-1xw0jqp.eows69w1", 
-        "div.css-4ct4xl",
-        "div.css-1ww6yd9.eows59w1"  # Keep original selector for backward compatibility
-    ]
-    
-    for selector in detail_selectors:
-        try:
-            detail_rows = driver.find_elements(By.CSS_SELECTOR, selector)
-            for row in detail_rows:
-                try:
-                    # Try to extract label and value using explicit p elements
-                    try:
-                        label_elements = row.find_elements(By.CSS_SELECTOR, "p.eows69w2.css-1airkmu")
-                        if len(label_elements) >= 2:
-                            label = label_elements[0].text.strip()
-                            value = label_elements[1].text.strip()
-                        else:
-                            # Fall back to extracting from the whole row text
-                            row_text = row.text.strip()
-                            if ":" in row_text:
-                                parts = row_text.split(":", 1)
-                                label = parts[0].strip() + ":"
-                                value = parts[1].strip()
-                            else:
-                                continue
-                    except Exception:
-                        # Fall back to extracting from the whole row text
-                        row_text = row.text.strip()
-                        if ":" in row_text:
-                            parts = row_text.split(":", 1)
-                            label = parts[0].strip() + ":"
-                            value = parts[1].strip()
-                        else:
-                            continue
-                    
-                    # Skip rows with no information
-                    if value.lower() in ["brak informacji", "brak"]:
-                        continue
-                        
-                    # Map labels to field names
-                    if "Piętro:" in label:
-                        record_dict['floor'] = value
-                    elif "Rynek:" in label:
-                        record_dict['market_type'] = value
-                    elif "Meble:" in label:
-                        record_dict['furnished'] = "Tak" if value.lower() not in ["nie", "brak"] else "Nie"
-                    
-                except Exception as inner_e:
-                    logging.warning(f"Error parsing detail row: {inner_e}")
-        except Exception as e:
-            logging.warning(f"Could not extract property details with selector {selector}: {e}")
+    @staticmethod
+    def _extract_next_data(html: str):
+        m = OfferScraper.JSON_RE.search(html)
+        if not m:
+            raise ValueError("No __NEXT_DATA__ JSON")
+        return json.loads(m.group(1))
 
-def scrap_otodom(driver, url):
-    """Scrape details from an Otodom listing using Selenium."""
-    if 'olx.pl' in url:
-        logging.info(f"Skipping OLX URL: {url}")
-        return
-    
-    try:
-        driver.get(url)
-        # Wait for page to load fully with randomized delay
-        time.sleep(random.uniform(3, 6))
-        
-        # Initialize record dictionary
-        record_dict = {field: "" for field in field_names}
-        record_dict['source'] = 'otodom'
-        record_dict['url'] = url
-        
-        # Extract title
-        record_dict['title'] = extract_text_safe(driver, "h1[data-cy='adPageAdTitle']")
-        
-        # Extract price
-        record_dict['price'] = extract_text_safe(driver, "strong[aria-label='Cena']")
-        
-        # Extract price per meter
-        price_per_meter_selectors = ["div.css-z3xj2a.e1k1vyr25", "div[data-testid='price-per-m']"]
-        for selector in price_per_meter_selectors:
-            price_per_meter = extract_text_safe(driver, selector)
-            if price_per_meter:
-                record_dict['price_per_meter'] = price_per_meter
-                break
-        
-        # Extract area
+    @staticmethod
+    def parse(url: str) -> Optional[PropertyRecord]:
         try:
-            area_elements = driver.find_elements(By.CSS_SELECTOR, "button.eezlw8k1.css-1nk40gi, div[data-testid='ad-features-item']")
-            for element in area_elements:
-                if "m²" in element.text:
-                    area_text = element.text
-                    area_match = re.search(r'(\d+[.,]?\d*)\s*m²', area_text)
-                    if area_match:
-                        record_dict['area'] = area_match.group(1)
-                    break
-        except Exception as e:
-            logging.warning(f"Could not extract area: {e}")
-        
-        # Extract rooms
-        try:
-            room_elements = driver.find_elements(By.CSS_SELECTOR, "button.eezlw8k1.css-1nk40gi, div[data-testid='ad-features-item']")
-            for element in room_elements:
-                if "pokój" in element.text or "pokoje" in element.text or "pokoi" in element.text:
-                    rooms_text = element.text
-                    rooms_match = re.search(r'(\d+)', rooms_text)
-                    if rooms_match:
-                        record_dict['rooms'] = rooms_match.group(1)
-                    break
-        except Exception as e:
-            logging.warning(f"Could not extract rooms: {e}")
-        
-        # Extract district
-        try:
-            district_elements = driver.find_elements(By.CSS_SELECTOR, "a.css-1jjm9oe.e42rcgs1, span[data-testid='location-name']")
-            if district_elements:
-                district_text = district_elements[0].text.strip()
-                if "Warszawa," in district_text:
-                    district_text = district_text.replace("Warszawa,", "").strip()
-                record_dict['district'] = district_text
-        except Exception as e:
-            logging.warning(f"Could not extract district: {e}")
-        
-        # Try to extract property details using the provided CSS selectors
-        try:
-            extract_property_details_with_selectors(driver, record_dict)
-        except Exception as e:
-            logging.warning(f"Failed to extract details with provided selectors: {e}")
-            # Fall back to the original method
-            extract_property_details_fallback(driver, record_dict)
-        
-        # Append record to list
-        records_otodom.append([record_dict[field] for field in field_names])
-        logging.info(f"Scraped: {url}")
-    
-    except Exception as e:
-        logging.error(f"Error scraping URL {url}: {e}")
+            resp = request_with_retry(url)
+            resp.raise_for_status()
+            data = OfferScraper._extract_next_data(resp.text)
+            ad   = data["props"]["pageProps"]["ad"]
+            char = ad.get("characteristics", [])
 
-def scrap_otodom_for_urls(driver, url, max_retries=3):
-    """Scrape listing page for apartment URLs with retry mechanism."""
-    for attempt in range(max_retries):
-        try:
-            driver.get(url)
-            time.sleep(random.uniform(3, 5))
-            
-            # Extract listing URLs with multiple selectors for robustness
-            card_links = []
-            for selector in ["a[data-cy='listing-item-link']", "a[data-testid='listing-item-link']"]:
-                links = driver.find_elements(By.CSS_SELECTOR, selector)
-                if links:
-                    card_links.extend(links)
-                    break
-            
-            urls = list(set(link.get_attribute('href') for link in card_links if link.get_attribute('href')))
-            logging.info(f"Found {len(urls)} listings on page")
-            
-            for link in urls:
-                scrap_otodom(driver, link)
-                # More variable delay to avoid detection
-                time.sleep(random.uniform(2, 7))
-            
-            # If we get here, it means success
+            # price
+            price = ""
+            ad_price = ad.get("price")
+            if isinstance(ad_price, dict):
+                price = str(ad_price.get("value", ""))
+            elif ad_price:
+                price = str(ad_price)
+            if not price:
+                price = OfferScraper._get_characteristic(char, "price")
+
+            # district
+            district = ""
+            addr = ad.get("address")
+            if addr and addr.get("district"):
+                d = addr["district"]
+                district = (d.get("code") or d.get("name") or "").lower()
+            if not district:
+                locs = ad.get("location", {}) \
+                         .get("reverseGeocoding", {}) \
+                         .get("locations", [])
+                for loc in locs:
+                    if loc.get("locationLevel") == "district":
+                        district = loc.get("name", "").lower()
+                        break
+
+            return PropertyRecord(
+                price            = price,
+                district         = district,
+                price_per_meter  = OfferScraper._get_characteristic(char,"price_per_m"),
+                area             = OfferScraper._get_characteristic(char,"m"),
+                rooms            = OfferScraper._get_characteristic(char,"rooms_num"),
+                floor            = OfferScraper._compose_floor(char),
+                market_type      = "pierwotny" if ad.get("market")=="PRIMARY" else "wtórny",
+                furnished        = OfferScraper._yes_no(char,"equipment_types"),
+                description      = ad.get("description",""),
+                date             = ad.get("createdAt","")[:10],
+                url              = url,
+                title            = ad.get("title",""),
+                building_type    = OfferScraper._get_characteristic(char,"building_type"),
+                year_built       = OfferScraper._get_characteristic(char,"build_year"),
+                rent             = OfferScraper._get_characteristic(char,"rent"),
+                finish_status    = OfferScraper._get_characteristic(char,"construction_status"),
+                ownership        = OfferScraper._get_characteristic(char,"building_ownership"),
+                heating          = OfferScraper._get_characteristic(char,"heating","localizedValue"),
+                elevator         = OfferScraper._yes_no(char,"lift"),
+                ad_id            = str(ad.get("id","")),
+                external_id      = ad.get("externalId",""),
+            )
+        except Exception as exc:
+            logger.warning("Offer fail → %s : %s", url, exc)
+            return None
+
+    fetch_offer = parse   # alias
+
+# ---------------------------------------------------------------------------
+# DATA MANAGER
+# ---------------------------------------------------------------------------
+class DataManager:
+    @staticmethod
+    def save_csv(recs: list[PropertyRecord], path: Path):
+        with path.open("w", newline="", encoding="utf-8") as f:
+            cw = csv.writer(f, delimiter=";")
+            cw.writerow(FIELD_NAMES)
+            cw.writerows(r.to_list() for r in recs)
+
+    @staticmethod
+    def save_partial(recs: list[PropertyRecord], page: int):
+        if not recs:
             return
-        
-        except Exception as e:
-            if attempt < max_retries - 1:
-                logging.warning(f"Attempt {attempt + 1} failed for page {url}: {e}. Retrying...")
-                time.sleep(random.uniform(10, 20))  # Longer delay before retry
-            else:
-                logging.error(f"Failed to extract URLs from page {url} after {max_retries} attempts: {e}")
+        tmp = TMP_DIR / f"page_{page:04d}_{datetime.now():%H%M%S}.csv"
+        DataManager.save_csv(recs, tmp)
+        logger.info("Temp save → %s (%s records)", tmp.name, len(recs))
 
-def save_to_file(name, records):
-    """Save scraped records to CSV file."""
-    try:
-        with open(name, "w", encoding="utf-8", newline='') as f:
-            writer = csv.writer(f, delimiter=';')
-            writer.writerow(field_names)
-            writer.writerows(records)
-        logging.info(f"Data successfully saved to {name}")
-    except Exception as e:
-        logging.error(f"Error saving data to {name}: {e}")
+# ---------------------------------------------------------------------------
+# ORCHESTRATOR
+# ---------------------------------------------------------------------------
+class OtodomScraper:
+    def __init__(self, start_page=1, max_pages=1, workers=8):
+        self.start_page = start_page
+        self.max_pages  = max_pages
+        self.workers    = workers
+        self.records: list[PropertyRecord] = []
 
-def main(start_page: int ,max_pages: int):
-    """Main function to control the scraping process."""
-    
-    driver = setup_driver()
-    logging.info("Starting Otodom scraper with Selenium...")
-    
-    try:
-        for count in range(start_page, start_page + max_pages):
-            current_url = f"{otodom_url}{count}"
-            logging.info(f"Processing page: {current_url}")
-            
-            scrap_otodom_for_urls(driver, current_url)
-            
-            # Save intermediate results every 5 pages
-            if count % 5 == 0 or count == max_pages:
-                save_to_file(f"tmp/tmp_otodom_{count}.csv", records_otodom)
-            
-            # Variable delay between pages
-            time.sleep(random.uniform(5, 10))
-        
-        # Save final results
-        FILENAME = f'raw_otodom_{datetime.now().strftime("%d%m%Y%H%M%S")}.csv'
-        full_path = os.path.join(RAW_PATH, FILENAME)
-        save_to_file(full_path, records_otodom)
-        
-        logging.info("Scraping completed successfully")
-    
-    finally:
-        driver.quit()
+    def _scrape_buffer(self, links: list[str], page_marker: int):
+        recs: list[PropertyRecord] = []
 
+        with ThreadPoolExecutor(max_workers=self.workers) as ex:
+            futures = [ex.submit(OfferScraper.fetch_offer, u) for u in links]
+            fut_iter = futures
+            if tqdm:
+                fut_iter = tqdm(as_completed(futures),
+                                total=len(futures),
+                                desc=f"Oferty {page_marker}",
+                                unit="ad")
+            for fut in fut_iter:
+                rec = fut.result()
+                if rec:
+                    recs.append(rec)
+                    self.records.append(rec)
+
+        DataManager.save_partial(recs, page_marker)
+
+    def run(self):
+        # -------- get listing ------------------------------------
+        page_range = range(self.start_page, self.start_page + self.max_pages)
+        page_iter = tqdm(page_range, desc="Listing pages", unit="page") if tqdm else page_range
+
+        buffer: list[str] = []
+        for p in page_iter:
+            links = ListingScraper.fetch_listing(p)
+            buffer.extend(links)
+
+            if p % PARTIAL_SAVE_EVERY == 0:
+                self._scrape_buffer(buffer, p)
+                buffer = []
+
+        if buffer:
+            self._scrape_buffer(buffer, self.start_page + self.max_pages - 1)
+
+        # -------- final save ------------------------------------------
+        if self.records:
+            out = RAW_DIR / f"otodom_{datetime.now():%Y%m%d_%H%M%S}.csv"
+            DataManager.save_csv(self.records, out)
+            logger.info("Zapisano %s rekordów → %s", len(self.records), out)
+        else:
+            logger.warning("No records to save.")
+
+# ---------------------------------------------------------------------------
+# main
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Scrape OTODOM with Selenium")
-    parser.add_argument('--start_page', type=int, default=1, help='First page to scrape')
-    parser.add_argument('--max_pages', type=int, default=1, help='Number of pages to scrape')
-    args = parser.parse_args()
-    main(args.start_page, args.max_pages)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--start_page", type=int, default=1)
+    ap.add_argument("--max_pages", type=int, default=1)
+    ap.add_argument("--workers",   type=int, default=8)
+    cfg = ap.parse_args()
+
+    OtodomScraper(cfg.start_page, cfg.max_pages, cfg.workers).run()
