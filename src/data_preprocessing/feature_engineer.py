@@ -1,9 +1,20 @@
 import pandas as pd
 import numpy as np
 import sys
+from pathlib import Path
+from datetime import datetime
+import joblib
 from sklearn.preprocessing import StandardScaler
 
 pd.set_option('display.float_format', lambda x: f'{x:.4f}')
+pd.set_option('future.no_silent_downcasting', True)
+
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2]
+sys.path.append(str(project_root))
+
+DATA_DIR = project_root / "data" / "processed"
+PICKLE_DIR = project_root / "data" / "processed" / "pickle"
 
 class FeatureEngineer():
     def __init__(self, df: pd.DataFrame):
@@ -139,14 +150,15 @@ class FeatureEngineer():
 
         print(f"Scaled columns: {columns}")
         return self
+        
+    def save_to_csv(self, version: str):
+        self.df.to_csv(f"{DATA_DIR}/v{version}_{datetime.today().strftime('%Y_%m_%d')}.csv", sep=";", index=False)
+
+        return self
 
 if __name__ == "__main__":
-    DIR = Path().resolve()
-    PROJECT_ROOT = DIR.parent
-    sys.path.append(str(PROJECT_ROOT))
-
     from src.eda.data_reader import DataReader
-    from src.data_preprocessing import DataProcessor
+    from src.data_preprocessing.data_processor import DataProcessor
     
     reader = DataReader()
     df = reader.read()
@@ -170,6 +182,7 @@ if __name__ == "__main__":
       .clean_outliers('rent')
       .drop_duplicates()
       .drop_columns(['source', 'date', 'url', 'title', 'ad_id', 'external_id'])
+      .save_to_csv("T")
      )
 
     df = data_processor.df
@@ -191,8 +204,11 @@ if __name__ == "__main__":
         .one_hot_encode('building_type')
         .drop_columns(['description', 'ownership', 'heating', 'market_type', 'district'])
         .scale_columns(['price', 'price_per_meter', 'area', 'year_built', 'rent', 'rooms', 'floor', 'building_max_floor'])
+        .save_to_csv("T")
          )
 
+
+    feature_engineer.save(f"{PICKLE_DIR}/features_engineer_vT.pkl")
     df = feature_engineer.df
 
     print(df)

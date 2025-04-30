@@ -2,6 +2,16 @@ import pandas as pd
 import numpy as np
 import sys
 from pathlib import Path
+from datetime import datetime
+
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2]
+sys.path.append(str(project_root))
+
+DATA_DIR = project_root / "data" / "cleaned"
+
+from src.eda.data_reader import DataReader
+
 
 class DataProcessor():
     def __init__(self, df: pd.DataFrame):
@@ -94,15 +104,14 @@ class DataProcessor():
         self.df = self.df.drop(columns, axis=1)
 
         return self
+        
+    def save_to_csv(self, version: str):
+        self.df.to_csv(f"{DATA_DIR}/v{version}_{datetime.today().strftime('%Y_%m_%d')}.csv", sep=";", index=False)
+
+        return self
 
 
 if __name__ == "__main__":
-    from src.eda.data_reader import DataReader
-    
-    DIR = Path().resolve()
-    PROJECT_ROOT = DIR.parent
-    sys.path.append(str(PROJECT_ROOT))
-
     reader = DataReader()
     df = reader.read()
 
@@ -125,6 +134,7 @@ if __name__ == "__main__":
       .clean_outliers('rent')
       .drop_duplicates()
       .drop_columns(['source', 'date', 'url', 'title', 'ad_id', 'external_id'])
+      .save_to_csv("T")
      )
 
     df = data_processor.df
