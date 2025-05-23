@@ -203,7 +203,7 @@ if __name__ == "__main__":
         .one_hot_encode('finish_status')
         .one_hot_encode('building_type')
         .drop_columns(['description', 'ownership', 'heating', 'market_type', 'district'])
-        .scale_columns(['price', 'price_per_meter', 'area', 'year_built', 'rent', 'rooms', 'floor', 'building_max_floor'])
+        .scale_columns(['price_per_meter', 'area', 'year_built', 'rent', 'rooms', 'floor', 'building_max_floor'])
         .save_to_csv("T")
          )
 
