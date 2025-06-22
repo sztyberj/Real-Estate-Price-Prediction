@@ -31,7 +31,7 @@ class DataReader:
                 self.frames_df.append(tmp)
 
         self.df = pd.concat(self.frames_df, ignore_index=True) if self.frames_df else pd.DataFrame()
-
+        print("DataReader: Readed files.")
         return self.df
     
 

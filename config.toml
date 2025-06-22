@@ -1,0 +1,30 @@
+[data_scraping]
+request_timeout = 15
+max_retries = 4
+base_delay_sec = 1.2
+partial_save_energy = 5
+start_page = 1
+max_pages = 20
+workers = 8
+
+[data_processing]
+columns_to_check = ["market_type", "furnished", "district", "finish_status", "ownership", "elevator", "year_built"]
+columns_to_clean = ["price", "price_per_meter", "rent"]
+columns_to_drop = ["source", "date", "url", "title", "ad_id", "external_id"]
+outlier_lower = 0.05
+outlier_upper = 0.95
+
+[feature_engineering]
+frequency_encode_cols = ["district"]
+one_hot_encode_cols = ["finish_status", "building_type"]
+drop_original_onehot = true
+luxury_quantile = 0.9
+binary_reduce_cols = {"heating" = "miejskie", "market_type" = "pierwotny", "ownership" = "full_ownership"}
+
+floor_map = {"suterena" = -1, "parter" = 0}
+
+columns_to_drop_final = ["description", "district","building_type"]
+
+top_building_types = ["apartment", "block", "tenement"]
+
+[model_params]

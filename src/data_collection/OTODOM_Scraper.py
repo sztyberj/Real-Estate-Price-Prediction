@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urljoin
+import toml
 
 import requests
 from bs4 import BeautifulSoup
@@ -43,6 +44,20 @@ LOG_DIR   = ROOT_DIR / "src" / "data_collection" / "logs"
 TMP_DIR   = ROOT_DIR / "data" / "tmp"
 for d in (RAW_DIR, LOG_DIR, TMP_DIR):
     d.mkdir(parents=True, exist_ok=True)
+    
+# --- load config --------------------------------------------------------
+with open(ROOT_DIR / "config.toml", 'r') as f:
+    config = toml.load(f)
+
+REQUEST_TIMEOUT = config['data_scraping']['request_timeout']
+MAX_RETRIES = config['data_scraping']['max_retries']       
+BASE_DELAY_SEC = config['data_scraping']['base_delay_sec']
+PARTIAL_SAVE_EVERY = config['data_scraping']['partial_save_energy']
+START_PAGE = config['data_scraping']['start_page']
+MAX_PAGES = config['data_scraping']['max_pages']
+WORKERS = config['data_scraping']['workers']
+     
+
 
 # --- network params --------------------------------------------------------
 USER_AGENTS = [
@@ -51,10 +66,6 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
     "(KHTML, like Gecko) Version/17.1 Safari/605.1.15",
 ]
-REQUEST_TIMEOUT     = 15
-MAX_RETRIES         = 4          
-BASE_DELAY_SEC      = 1.2        
-PARTIAL_SAVE_EVERY  = 5          
 
 # --- logger -----------------------------------------------------------------
 LOG_FMT  = "%(asctime)s | %(levelname)-8s | %(threadName)s | %(message)s"
@@ -262,7 +273,7 @@ class DataManager:
 # ORCHESTRATOR
 # ---------------------------------------------------------------------------
 class OtodomScraper:
-    def __init__(self, start_page=1, max_pages=1, workers=8):
+    def __init__(self, start_page= START_PAGE, max_pages= MAX_PAGES, workers= WORKERS):
         self.start_page = start_page
         self.max_pages  = max_pages
         self.workers    = workers
@@ -316,11 +327,14 @@ class OtodomScraper:
 # main
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    """
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--start_page", type=int, default=1)
     ap.add_argument("--max_pages", type=int, default=1)
     ap.add_argument("--workers",   type=int, default=8)
     cfg = ap.parse_args()
-
+    
     OtodomScraper(cfg.start_page, cfg.max_pages, cfg.workers).run()
+    """
+    OtodomScraper().run()
