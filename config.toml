@@ -13,6 +13,7 @@ columns_to_clean = ["price", "price_per_meter", "rent"]
 columns_to_drop = ["source", "date", "url", "title", "ad_id", "external_id"]
 outlier_lower = 0.05
 outlier_upper = 0.95
+floor_map = {"suterena" = -1, "parter" = 0}
 
 [feature_engineering]
 frequency_encode_cols = ["district"]
@@ -21,10 +22,10 @@ drop_original_onehot = true
 luxury_quantile = 0.9
 binary_reduce_cols = {"heating" = "miejskie", "market_type" = "pierwotny", "ownership" = "full_ownership"}
 
-floor_map = {"suterena" = -1, "parter" = 0}
-
 columns_to_drop_final = ["description", "district","building_type"]
 
 top_building_types = ["apartment", "block", "tenement"]
+
+columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq"]
 
 [model_params]

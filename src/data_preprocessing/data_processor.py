@@ -31,6 +31,8 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         self.columns_to_clean = dp_config.get('columns_to_clean', [])
         self.columns_to_drop = dp_config.get('columns_to_drop', [])
 
+        self.floor_map = dp_config.get('floor_map', {})
+
         self.lower = dp_config.get('outlier_lower', 0.05)
         self.upper = dp_config.get('outlier_upper', 0.95)
 
@@ -128,9 +130,29 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         if existing_columns_to_drop:
             df = df.drop(columns=existing_columns_to_drop, errors='ignore')
             print(f"DataProcessor: columns {existing_columns_to_drop} dropped.")
+
+        if 'floor' in df.columns:
+            if not df['floor'].isnull().all():
+                df[['floor', 'building_max_floor']] = df['floor'].astype(str).str.split('/', expand=True)
+
+            df['floor'] = df['floor'].replace(self.floor_map)
+            df['building_max_floor'] = pd.to_numeric(df['building_max_floor'], errors='coerce')
+
+            df.loc[df['floor'] == 'poddasze', 'floor'] = df['building_max_floor'] + 1
+
+            df['is_above_10_floor'] = df['floor'].astype(str).str.contains('>').astype(int)
+
+            df['floor'] = df['floor'].astype(str).str.replace('>', '', regex=False)
+            df['floor'] = pd.to_numeric(df['floor'], errors='coerce')
+
+            df.loc[df['building_max_floor'] > 60, 'building_max_floor'] = np.nan
+
+            if 'floor' in df.columns and 'building_max_floor' in df.columns:
+                df = df.dropna(subset=['floor', 'building_max_floor'])
+
+            print("FeatureEngineer: 'floor' and 'building_max_floor' processed.")
         
         return df
-
 
 if __name__ == "__main__":
     #Run from ./Real Estate Price Prediction/
