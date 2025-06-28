@@ -4,15 +4,7 @@ import sys
 import logging
 import pandas as pd
 from pathlib import Path
-
-# Logging config
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler()
-    ]
-)
+from src.utils.logging_config import logger
 
 THIS_FILE = Path(__file__).resolve()
 ROOT_DIR  = THIS_FILE.parents[2]
@@ -31,7 +23,7 @@ class DataReader:
                 self.frames_df.append(tmp)
 
         self.df = pd.concat(self.frames_df, ignore_index=True) if self.frames_df else pd.DataFrame()
-        print("DataReader: Readed files.")
+        logger.info("DataReader: Readed files.")
         return self.df
     
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 import csv
 import json
-import logging
+from src.utils.logging_config import logger
 import random
 import re
 import sys
@@ -70,18 +70,6 @@ USER_AGENTS = [
 # --- logger -----------------------------------------------------------------
 LOG_FMT  = "%(asctime)s | %(levelname)-8s | %(threadName)s | %(message)s"
 DATE_FMT = "%Y-%m-%d %H:%M:%S"
-logging.basicConfig(
-    level=logging.INFO,
-    format=LOG_FMT,
-    datefmt=DATE_FMT,
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOG_DIR / f"otodom_{datetime.now():%Y%m%d}.log",
-                            encoding="utf-8"),
-    ],
-    force=True,
-)
-logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # UTILS – GET (retry + exponential back‑off + delay)

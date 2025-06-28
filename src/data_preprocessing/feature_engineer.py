@@ -7,6 +7,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler
 import toml
 import warnings
+from src.utils.logging_config import logger
 
 pd.set_option('display.float_format', lambda x: f'{x:.4f}')
 pd.set_option('future.no_silent_downcasting', True)
@@ -50,24 +51,25 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def save_to_csv(df: pd.DataFrame , version: str):
-        print(f"FeatureEngineer: save to .csv as {version} version")
+        logger.info(f"FeatureEngineer: save to .csv as {version} version")
         df.to_csv(f"{DATA_DIR}/v{version}_{datetime.today().strftime('%Y_%m_%d')}.csv", sep=";", index=False)
 
     def fit(self, X: pd.DataFrame, y=None):
+        logger.info("Fit")
         temp_X_for_fit = X.copy()
         
         self.columns_for_scaling = [col for col in self.columns_to_scale if col in temp_X_for_fit.columns]
 
         if self.columns_for_scaling:
             self.scaler.fit(temp_X_for_fit[self.columns_for_scaling])
-            print(f"FeatureEngineer: Fit scaler for '{self.columns_for_scaling}'.")
+            logger.info(f"FeatureEngineer: Fit scaler for '{self.columns_for_scaling}'.")
 
         #Preprocessing
         if 'building_type' in self.one_hot_encode_cols and 'building_type' in temp_X_for_fit.columns:
             temp_X_for_fit['building_type'] = temp_X_for_fit['building_type'].apply(
                 lambda x: x if x in self.top_building_types else 'other'
             )
-            print("FeatureEngineer: 'building_type' reduced for fit purposes (to learn correct OHE categories).")
+            logger.info("FeatureEngineer: 'building_type' reduced for fit purposes (to learn correct OHE categories).")
 
         #Frequency encoding
         for col in self.freq_encode_cols:
@@ -75,24 +77,25 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
                 freq_map = temp_X_for_fit[col].value_counts(normalize=True).to_dict()
                 self.encodings[col] = freq_map
                 temp_X_for_fit[f'{col}_freq'] = temp_X_for_fit[col].map(self.encodings[col]).fillna(0)
-                print(f"FeatureEngineer: Learned frequency map for '{col}'.")
+                logger.info(f"FeatureEngineer: Learned frequency map for '{col}'.")
 
         #One hot encoding
         for col in self.one_hot_encode_cols:
             if col in temp_X_for_fit.columns:
                 self.categories_[col] = pd.Categorical(temp_X_for_fit[col]).categories.tolist()
-                print(f"FeatureEngineer: Learned categories for '{col}': {self.categories_[col]}.")
+                logger.info(f"FeatureEngineer: Learned categories for '{col}': {self.categories_[col]}.")
 
         #Is_luxury threshold
         if 'price_per_meter' in temp_X_for_fit.columns:
             self.price_per_meter_quantile_threshold = temp_X_for_fit['price_per_meter'].quantile(self.luxury_quantile)
-            print(f"FeatureEngineer: Learned luxury threshold for 'price_per_meter': {self.price_per_meter_quantile_threshold:.2f}")
+            logger.info(f"FeatureEngineer: Learned luxury threshold for 'price_per_meter': {self.price_per_meter_quantile_threshold:.2f}")
         else:
             self.price_per_meter_quantile_threshold = 0
 
         return self
     
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        logger.info("Transform")
         df_transformed = X.copy()
         #1. elevator_in_desc
         if 'description' in df_transformed.columns:
@@ -100,21 +103,21 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
             df_transformed.loc[has_elevator, 'elevator'] = 1
             df_transformed['elevator'] = df_transformed['elevator'].replace({'Tak': 1, 'Nie': 0})
             df_transformed['elevator'] = df_transformed['elevator'].fillna(0).astype(int)
-            print("DataProcessor: 'elevator' feature created.")
+            logger.info("FeatureEngineer: 'elevator' feature created.")
 
         #2. has_balcony_in_desc
         if 'description' in df_transformed.columns:
             has_balcony = df_transformed['description'].str.contains(r'\b(balkon\w*|taras\w*)\b', case=False, na=False)
             df_transformed.loc[has_balcony, 'balcony'] = 1
             df_transformed['balcony'] = df_transformed['balcony'].fillna(0).astype(int)
-            print("DataProcessor: 'balcony' feature created.")
+            logger.info("FeatureEngineer: 'balcony' feature created.")
 
         #3. has_garage_in_desc
         if 'description' in df_transformed.columns:
             has_garage = df_transformed['description'].str.contains(r'\bgaraż\w*\b', case=False, na=False)
             df_transformed.loc[has_garage, 'garage'] = 1
             df_transformed['garage'] = df_transformed['garage'].fillna(0).astype(int)
-            print("DataProcessor: 'garage' feature created.")
+            logger.info("FeatureEngineer: 'garage' feature created.")
 
         #4. has_furniture_in_desc
         if 'description' in df_transformed.columns:
@@ -122,7 +125,7 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
             df_transformed.loc[has_furniture, 'furnished'] = 1
             df_transformed['furnished'] = df_transformed['furnished'].replace({'Tak': 1, 'Nie': 0})
             df_transformed['furnished'] = df_transformed['furnished'].fillna(0).astype(int)
-            print("DataProcessor: 'furnished' feature created.")
+            logger.info("FeatureEngineer: 'furnished' feature created.")
 
         #5. create room_per_area col
         if "rooms" in df_transformed.columns and "area" in df_transformed.columns and not df_transformed['area'].eq(0).any():
@@ -130,13 +133,13 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
             # Handle potential division by zero results
             df_transformed['rooms_per_area'].replace([np.inf, -np.inf], np.nan, inplace=True)
             df_transformed['rooms_per_area'].fillna(0, inplace=True) # Fill with 0 or median/mean
-            print("DataProcessor: 'rooms_per_area' feature created.")
+            logger.info("FeatureEngineer: 'rooms_per_area' feature created.")
 
         #6. reduce_to_binary
         for col, positive_val in self.binary_reduce_cols.items():
             if col in df_transformed.columns:
                 df_transformed[col] = (df_transformed[col] == positive_val).astype(int)
-                print(f"FeatureEngineer: Reduced '{col}' to binary.")
+                logger.info(f"FeatureEngineer: Reduced '{col}' to binary.")
 
         #7. reduce_building_type
         if 'building_type' in df_transformed.columns:
@@ -144,19 +147,19 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
             df_transformed['building_type'] = df_transformed['building_type'].apply(
                 lambda x: x if x in top_types else 'other'
             )
-            print("FeatureEngineer: 'building_type' reduced.")
+            logger.info("FeatureEngineer: 'building_type' reduced.")
 
         #required 'fit'
         #8. create_luxury_col (wymaga price_per_meter i nauczonego progu)
         if "price_per_meter" in df_transformed.columns and self.price_per_meter_quantile_threshold is not None:
             df_transformed["is_luxury"] = (df_transformed["price_per_meter"] > self.price_per_meter_quantile_threshold).astype(int)
-            print("FeatureEngineer: 'is_luxury' feature created.")
+            logger.info("FeatureEngineer: 'is_luxury' feature created.")
 
         #9. frequency_encoding
         for col in self.freq_encode_cols:
             if col in df_transformed.columns and col in self.encodings:
                 df_transformed[f'{col}_freq'] = df_transformed[col].map(self.encodings[col]).fillna(0)
-                print(f"FeatureEngineer: Applied frequency encoding for '{col}'.")
+                logger.info(f"FeatureEngineer: Applied frequency encoding for '{col}'.")
 
         #10. one_hot_encoding
         for col in self.one_hot_encode_cols:
@@ -169,7 +172,7 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
                 
                 if self.drop_original_onehot:
                     df_transformed.drop(columns=[col], inplace=True)
-                print(f"FeatureEngineer: Applied One-Hot Encoding for '{col}'.")
+                logger.info(f"FeatureEngineer: Applied One-Hot Encoding for '{col}'.")
 
         #11. scaler
         existing_columns_to_scale = [col for col in self.columns_for_scaling if col in df_transformed.columns]
@@ -182,11 +185,11 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         cols_to_actually_drop = [c for c in self.cols_to_drop_final if c in df_transformed.columns]
         if cols_to_actually_drop:
             df_transformed = df_transformed.drop(cols_to_actually_drop, axis=1)
-            print(f"FeatureEngineer: Dropped columns: {cols_to_actually_drop}")
+            logger.info(f"FeatureEngineer: Dropped columns: {cols_to_actually_drop}")
 
         df_transformed = df_transformed.reset_index(drop=True)
 
-        print("FeatureEngineer: Transformation complete.")
+        logger.info("FeatureEngineer: Transformation complete.")
 
         return df_transformed
 
