@@ -21,10 +21,9 @@ DATA_DIR = ROOT_DIR / "data" / "cleaned"
 with open(ROOT_DIR / "config.toml", 'r') as f:
     config = toml.load(f)
 
-
 class DataProcessor(BaseEstimator, TransformerMixin):
     def __init__(self, config = None):
-        self.config = config if config is not None else {}
+        self.config = dict(config) if config is not None else {}
 
         dp_config = self.config.get('data_processing', {})
 
@@ -32,7 +31,7 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         self.columns_to_clean = dp_config.get('columns_to_clean', [])
         self.columns_to_drop = dp_config.get('columns_to_drop', [])
 
-        self.floor_map = dp_config.get('floor_map', {})
+        self.floor_map = dict(dp_config.get('floor_map', {}))
 
         self.lower = dp_config.get('outlier_lower', 0.05)
         self.upper = dp_config.get('outlier_upper', 0.95)

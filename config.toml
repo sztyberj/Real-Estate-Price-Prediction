@@ -21,11 +21,8 @@ one_hot_encode_cols = ["finish_status", "building_type"]
 drop_original_onehot = true
 luxury_quantile = 0.9
 binary_reduce_cols = {"heating" = "miejskie", "market_type" = "pierwotny", "ownership" = "full_ownership"}
-
 columns_to_drop_final = ["description", "district","building_type"]
-
 top_building_types = ["apartment", "block", "tenement"]
-
 columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq"]
 
 [model_params]

@@ -23,8 +23,8 @@ with open(ROOT_DIR / "config.toml", 'r') as f:
     config = toml.load(f)
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):
-    def __init__(self, config_feature = None):
-        self.config = config_feature if config_feature is not None else {}
+    def __init__(self, config = None):
+        self.config = dict(config) if config is not None else {}
 
         fe_config = self.config.get('feature_engineering', {})
 
@@ -38,7 +38,7 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         self.luxury_quantile = fe_config.get('luxury_quantile', 0.9)
         self.price_per_meter_quantile_threshold = None
 
-        self.binary_reduce_cols = fe_config.get('binary_reduce_cols', {})
+        self.binary_reduce_cols = dict(fe_config.get('binary_reduce_cols', {}))
 
         self.cols_to_drop_final = fe_config.get('columns_to_drop_final', [])
 
