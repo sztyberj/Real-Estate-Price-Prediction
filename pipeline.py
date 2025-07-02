@@ -22,6 +22,9 @@ with open(ROOT_DIR / "config.toml", 'r') as f:
     config = toml.load(f)
     config = json.loads(json.dumps(config))
 
+pipe_config = config.get('model_params', {})
+version = pipe_config.get('version', "")
+
 logger.info("[START] Pipeline")
 
 reader = DataReader()
@@ -92,5 +95,5 @@ val_r2 = r2_score(y_val_scaled, y_val_pred)
 logger.info(f"MSE Val: {val_mse:.4f}")
 logger.info(f"R2 Val: {val_r2:.4f}")
 
-joblib.dump(full_pipeline, 'real_estate_model_pipeline.joblib')
-logger.info("\nFull pipeline saved to 'real_estate_model_pipeline.joblib'")
+joblib.dump(full_pipeline, f'models/real_estate_model_pipeline_{version}.joblib')
+logger.info(f"\nFull pipeline saved to 'real_estate_model_pipeline_{version}.joblib'")

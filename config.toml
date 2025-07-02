@@ -26,3 +26,4 @@ top_building_types = ["apartment", "block", "tenement"]
 columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq"]
 
 [model_params]
+version = "1.1"
