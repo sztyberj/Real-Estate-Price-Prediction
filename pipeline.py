@@ -40,60 +40,57 @@ full_pipeline = Pipeline(steps=[
 
 logger.info(str(full_pipeline))
 
-df = reader.read()
+df_raw = reader.read()
 
-data_processor.fit(df)
+logger.info("Step 1: Initial data processing with DataProcessor")
+data_processor.fit(df_raw)
+df_processed = data_processor.transform(df_raw)
+logger.info("Initial data processing complete. 'price' column is now clean.")
 
-df = data_processor.transform(df)
-
-data_shuffled = df.sample(frac=1, random_state=14).reset_index(drop=True)
+data_shuffled = df_processed.sample(frac=1, random_state=14).reset_index(drop=True)
 
 n = len(data_shuffled)
 train_end = int(0.7 * n)
 val_end = int(0.85 * n)
 
 df_train = data_shuffled.iloc[:train_end]
-df_val   = data_shuffled.iloc[train_end:val_end]
-df_test  = data_shuffled.iloc[val_end:]
+df_val = data_shuffled.iloc[train_end:val_end]
+df_test = data_shuffled.iloc[val_end:]
 
-#train set
-y_train = df_train.iloc[:, 0].to_numpy()
-X_train_df = df_train.iloc[:, 1:]
+TARGET_COLUMN = 'price'
+y_train = df_train[TARGET_COLUMN]
+X_train = df_train.drop(columns=[TARGET_COLUMN])
 
-#val/dev set
-y_val = df_val.iloc[:, 0].to_numpy()
-X_val_df = df_val.iloc[:, 1:]
+y_val = df_val[TARGET_COLUMN]
+X_val = df_val.drop(columns=[TARGET_COLUMN])
 
-#test/test set
-y_test = df_test.iloc[:, 0].to_numpy()
-X_test_df = df_test.iloc[:, 1:]
-
-logger.info(f"Train size: {X_train_df.shape[0], y_train.shape[0]}")
-logger.info(f"Val size: {X_val_df.shape[0], y_val.shape[0]}")
-logger.info(f"Test size: {X_test_df.shape[0], y_test.shape[0]}")
-
-feature_engineer.fit(X_train_df)
-
-X_train_df = feature_engineer.transform(X_train_df)
-X_val_df = feature_engineer.transform(X_val_df)
-X_test_df = feature_engineer.transform(X_test_df)
-
-logger.info("Scale Y")
+logger.info("Scaling target variable 'y'")
 y_scaler = StandardScaler()
+y_train_scaled = y_scaler.fit_transform(y_train.to_numpy().reshape(-1, 1))
+y_val_scaled = y_scaler.transform(y_val.to_numpy().reshape(-1, 1))
 
-y_train_scaled = y_scaler.fit_transform(y_train.reshape(-1, 1))
-y_val_scaled = y_scaler.transform(y_val.reshape(-1, 1))
-y_test_scaled = y_scaler.transform(y_test.reshape(-1, 1))
+feature_model_pipeline = Pipeline(steps=[
+    ('feature_engineering', feature_engineer),
+    ('model', xgb_model)
+])
 
-logger.info("Train XGBRegressor")
-xgb_model.fit(X_train_df, y_train_scaled)
+logger.info("Step 4: Fitting the feature engineering and model pipeline")
+feature_model_pipeline.fit(X_train, y_train_scaled.ravel())
 
-y_val_pred = xgb_model.predict(X_val_df)
+logger.info("Evaluating the model")
+y_val_pred = feature_model_pipeline.predict(X_val)
 val_mse = mean_squared_error(y_val_scaled, y_val_pred)
 val_r2 = r2_score(y_val_scaled, y_val_pred)
 
 logger.info(f"MSE Val: {val_mse:.4f}")
 logger.info(f"R2 Val: {val_r2:.4f}")
 
-joblib.dump(full_pipeline, f'models/real_estate_model_pipeline_{version}.joblib')
-logger.info(f"\nFull pipeline saved to 'real_estate_model_pipeline_{version}.joblib'")
+logger.info("Saving components...")
+
+trained_components = {
+    'data_processor': data_processor,
+    'feature_model_pipeline': feature_model_pipeline,
+    'y_scaler': y_scaler
+}
+joblib.dump(trained_components, f'models/real_estate_model_components_{version}.joblib')
+logger.info(f"Trained components saved to 'models/real_estate_model_components_{version}.joblib'")

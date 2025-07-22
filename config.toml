@@ -27,3 +27,7 @@ columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "
 
 [model_params]
 version = "1.1"
+
+[api]
+version = "1.1"
+title = "Real Estate Price Prediction"
