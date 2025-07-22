@@ -25,14 +25,14 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- Tytuł i opis ---
+#Title
 st.title("🏠 Predykcja Cen Mieszkań")
 st.write(
     "Wprowadź dane dotyczące nieruchomości, aby otrzymać przewidywaną cenę rynkową. "
     "Aplikacja komunikuje się z modelem predykcyjnym poprzez API."
 )
 
-# --- Adres URL Twojego API ---
+#API Adress
 API_URL = f"http://{host}:{port}/predict/"
 
 district_options = [
@@ -44,8 +44,8 @@ market_type_options = ['pierwotny', 'wtórny']
 
 #Polish dictionary
 building_type_map = {
-    'Kamienica': 'tenement',
     'Blok': 'block',
+    'Kamienica': 'tenement',
     'Apartamentowiec': 'apartment',
     'Zabudowa wypełniająca': 'infill',
     'Szeregowiec': 'ribbon',
@@ -79,12 +79,12 @@ with st.form("prediction_form"):
         rooms = st.number_input("Liczba pokoi", min_value=1, max_value=10, value=3, step=1)
         floor = st.number_input("Piętro", min_value=0, max_value=50, value=3, step=1)
         building_max_floor = st.number_input("Liczba pięter w budynku", min_value=1, max_value=50, value=10, step=1)
-        year_built = st.number_input("Rok budowy", min_value=1900, max_value=2025, value=2015, step=1)
+        year_built = st.number_input("Rok budowy", min_value=1900, max_value=2030, value=2015, step=1)
+        rent = st.number_input("Czynsz", min_value=1, max_value=30000, value=800, step=100)
 
     with col2:
         district = st.selectbox("Dzielnica", options=sorted(district_options))
         market_type = st.selectbox("Rynek", options=market_type_options, index=1)
-        # Użytkownik wybiera z polskich etykiet
         building_type_pl = st.selectbox("Typ budynku", options=list(building_type_map.keys()))
         finish_status_pl = st.selectbox("Stan wykończenia", options=list(finish_status_map.keys()))
         ownership_pl = st.selectbox("Forma własności", options=list(ownership_map.keys()))
@@ -94,50 +94,44 @@ with st.form("prediction_form"):
     amenities_col1, amenities_col2, amenities_col3, amenities_col4 = st.columns(4)
     with amenities_col1:
         garage = st.checkbox("Garaż", value=True)
-    with amenities_col2:
-        balcony = st.checkbox("Balkon / Taras", value=True)
-    with amenities_col3:
-        elevator = st.checkbox("Winda", value=True)
-    with amenities_col4:
-        furnished = st.checkbox("Umeblowane", value=False)
     
-    submit_button = st.form_submit_button(label="Przewiduj cenę")
-
+    submit_button = st.form_submit_button(label="Predykcja ceny")
 
 if submit_button:
-    data_to_predict = {
-        "area": area,
-        "rooms": rooms,
-        "floor": floor,
-        "building_max_floor": building_max_floor,
-        "year_built": year_built,
-        "district": district.lower(),
-        "market_type": market_type,
-        "building_type": building_type_map.get(building_type_pl),
-        "finish_status": finish_status_map.get(finish_status_pl),
-        "ownership": ownership_map.get(ownership_pl),
-        "heating": heating,
-        "garage": garage,
-        "balcony": balcony,
-        "elevator": elevator,
-        "furnished": furnished,
-    }
+    if floor > building_max_floor:
+        st.error(f"Błąd: Piętro {floor} nie może być wyższe niż liczba pięter w budynku {building_max_floor}.")
+    else:
+        data_to_predict = {
+            "area": area,
+            "rooms": rooms,
+            "floor": floor,
+            "building_max_floor": building_max_floor,
+            "year_built": year_built,
+            "district": district.lower(),
+            "market_type": market_type,
+            "building_type": building_type_map.get(building_type_pl),
+            "finish_status": finish_status_map.get(finish_status_pl),
+            "ownership": ownership_map.get(ownership_pl),
+            "heating": heating,
+            "garage": garage,
+            "rent": rent
+        }
 
-    with st.spinner("Przetwarzanie danych i predykcja..."):
-        try:
-            response = requests.post(API_URL, json=[data_to_predict])
-            response.raise_for_status()
+        with st.spinner("Przetwarzanie danych i predykcja..."):
+            try:
+                response = requests.post(API_URL, json=[data_to_predict])
+                response.raise_for_status()
 
-            result = response.json()
-            if "predictions" in result and result["predictions"]:
-                predicted_price = result["predictions"][0]
-                formatted_price = f"{predicted_price:,.0f} PLN".replace(",", " ")
-                
-                st.success(f"**Przewidywana cena nieruchomości: {formatted_price}**")
-            else:
-                st.error(f"Wystąpił błąd w odpowiedzi z API: {result.get('error', 'Brak predykcji.')}")
+                result = response.json()
+                if "predictions" in result and result["predictions"]:
+                    predicted_price = result["predictions"][0]
+                    formatted_price = f"{predicted_price:,.0f} PLN".replace(",", " ")
+                    
+                    st.success(f"**Przewidywana cena nieruchomości: {formatted_price}**")
+                else:
+                    st.error(f"Wystąpił błąd w odpowiedzi z API: {result.get('error', 'Brak predykcji.')}")
 
-        except requests.exceptions.RequestException as e:
-            st.error(f"Błąd połączenia z API. Upewnij się, że serwer FastAPI jest uruchomiony. Szczegóły: {e}")
-        except Exception as e:
-            st.error(f"Wystąpił nieoczekiwany błąd: {e}")
+            except requests.exceptions.RequestException as e:
+                st.error(f"Błąd połączenia z API. Upewnij się, że serwer FastAPI jest uruchomiony. Szczegóły: {e}")
+            except Exception as e:
+                st.error(f"Wystąpił nieoczekiwany błąd: {e}")

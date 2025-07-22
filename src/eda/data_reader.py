@@ -24,6 +24,7 @@ class DataReader:
 
         self.df = pd.concat(self.frames_df, ignore_index=True) if self.frames_df else pd.DataFrame()
         logger.info("DataReader: Readed files.")
+        logger.info(f"DataRows to train: {self.df.shape[0]}")
         return self.df
     
 

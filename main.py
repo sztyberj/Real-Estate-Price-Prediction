@@ -19,8 +19,8 @@ with open(ROOT_DIR / "config.toml", 'r') as f:
     config = toml.load(f)
     config = json.loads(json.dumps(config))
 
-api_config = config.get('model_params', {})
-version = api_config.get('version', "")
+api_config = config.get('api', {})
+version = config.get('model_params',{}).get('version', "")
 title = api_config.get('title', "Real Estate Price Prediction API")
 host = api_config.get('host', "127.0.0.1")
 port = api_config.get('port', 8000)
@@ -48,9 +48,6 @@ class RawDataPoint(BaseModel):
     ownership: Optional[str] = None
     heating: Optional[str] = None
     garage: Optional[bool] = Field(None)
-    balcony: Optional[bool] = Field(None)
-    furnished: Optional[bool] = Field(None)
-    elevator: Optional[bool] = Field(None)
     description: Optional[str] = Field("")
     price_per_meter: Optional[float] = Field(0.0)
     rent: Optional[int] = Field(0)
@@ -67,7 +64,7 @@ def predict(raw_data_points: List[RawDataPoint]):
     input_df = pd.DataFrame([item.model_dump() for item in raw_data_points])
 
     #Prepare data
-    bool_cols = ['garage', 'balcony', 'furnished', 'elevator']
+    bool_cols = ['garage']
     for col in bool_cols:
         if col in input_df.columns:
             input_df[col] = input_df[col].apply(lambda x: 1 if x is True else 0)

@@ -3,8 +3,8 @@ request_timeout = 15
 max_retries = 4
 base_delay_sec = 1.2
 partial_save_energy = 5
-start_page = 1
-max_pages = 20
+start_page = 100
+max_pages = 200
 workers = 8
 
 [data_processing]
@@ -16,20 +16,19 @@ outlier_upper = 0.95
 floor_map = {"suterena" = -1, "parter" = 0}
 
 [feature_engineering]
-frequency_encode_cols = ["district"]
-one_hot_encode_cols = ["finish_status", "building_type"]
+frequency_encode_cols = ["district", "heating", "ownership", "building_type", "finish_status"]
+one_hot_encode_cols = []
 drop_original_onehot = true
 luxury_quantile = 0.9
-binary_reduce_cols = {"heating" = "miejskie", "market_type" = "pierwotny", "ownership" = "full_ownership"}
-columns_to_drop_final = ["description", "district","building_type"]
+binary_reduce_cols = {"market_type" = "pierwotny"}
+columns_to_drop_final = ["description", "district","building_type", "ownership", "heating", "building_type", "balcony", "elevator", "furnished", "finish_status"]
 top_building_types = ["apartment", "block", "tenement"]
-columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq"]
+columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq", "heating_freq", "ownership_freq", "building_type_freq", "finish_status_freq"]
 
 [model_params]
-version = "1.1"
+version = "1.2"
 
 [api]
-version = "1.1"
 title = "Real Estate Price Prediction"
 host = "127.0.0.1"
 port = 8000

@@ -3,7 +3,6 @@
 from __future__ import annotations
 import csv
 import json
-from src.utils.logging_config import logger
 import random
 import re
 import sys
@@ -45,6 +44,9 @@ TMP_DIR   = ROOT_DIR / "data" / "tmp"
 for d in (RAW_DIR, LOG_DIR, TMP_DIR):
     d.mkdir(parents=True, exist_ok=True)
     
+sys.path.append(str(ROOT_DIR))
+from src.utils.logging_config import logger
+
 # --- load config --------------------------------------------------------
 with open(ROOT_DIR / "config.toml", 'r') as f:
     config = toml.load(f)
@@ -88,7 +90,7 @@ def request_with_retry(url: str) -> requests.Response:
     hdr = {"User-Agent": random.choice(USER_AGENTS)}
     resp = _SESSION.get(url, headers=hdr, timeout=REQUEST_TIMEOUT)
     if resp.status_code >= 400:
-        logger.warning("HTTP %s → %s", resp.status_code, url)
+        logger.warning("HTTP %s -> %s", resp.status_code, url)
     time.sleep(random.uniform(BASE_DELAY_SEC * 0.8, BASE_DELAY_SEC * 1.2))
     return resp
 
@@ -233,7 +235,7 @@ class OfferCrawler:
                 external_id      = ad.get("externalId",""),
             )
         except Exception as exc:
-            logger.warning("Offer fail → %s : %s", url, exc)
+            logger.warning("Offer fail -> %s : %s", url, exc)
             return None
 
     fetch_offer = parse   # alias
@@ -255,7 +257,7 @@ class DataManager:
             return
         tmp = TMP_DIR / f"page_{page:04d}_{datetime.now():%H%M%S}.csv"
         DataManager.save_csv(recs, tmp)
-        logger.info("Temp save → %s (%s records)", tmp.name, len(recs))
+        logger.info("Temp save -> %s (%s records)", tmp.name, len(recs))
 
 # ---------------------------------------------------------------------------
 # ORCHESTRATOR
@@ -307,7 +309,7 @@ class OtodomCrawler:
         if self.records:
             out = RAW_DIR / f"otodom_{datetime.now():%Y%m%d_%H%M%S}.csv"
             DataManager.save_csv(self.records, out)
-            logger.info("Zapisano %s rekordów → %s", len(self.records), out)
+            logger.info("Zapisano %s rekordów -> %s", len(self.records), out)
         else:
             logger.warning("No records to save.")
 
