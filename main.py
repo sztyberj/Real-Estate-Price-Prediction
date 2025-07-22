@@ -22,6 +22,8 @@ with open(ROOT_DIR / "config.toml", 'r') as f:
 api_config = config.get('model_params', {})
 version = api_config.get('version', "")
 title = api_config.get('title', "Real Estate Price Prediction API")
+host = api_config.get('host', "127.0.0.1")
+port = api_config.get('port', 8000)
 
 MODEL_COMPONENTS_PATH = ROOT_DIR / f"models/real_estate_model_components_{version}.joblib"
 
@@ -45,11 +47,11 @@ class RawDataPoint(BaseModel):
     finish_status: Optional[str] = None
     ownership: Optional[str] = None
     heating: Optional[str] = None
-    garage: Optional[bool] = Field(None, description="Czy mieszkanie posiada garaż?")
-    balcony: Optional[bool] = Field(None, description="Czy mieszkanie posiada balkon/taras?")
-    furnished: Optional[bool] = Field(None, description="Czy mieszkanie jest umeblowane?")
-    elevator: Optional[bool] = Field(None, description="Czy w budynku jest winda?")
-    description: Optional[str] = Field("", description="Opcjonalny opis tekstowy")
+    garage: Optional[bool] = Field(None)
+    balcony: Optional[bool] = Field(None)
+    furnished: Optional[bool] = Field(None)
+    elevator: Optional[bool] = Field(None)
+    description: Optional[str] = Field("")
     price_per_meter: Optional[float] = Field(0.0)
     rent: Optional[int] = Field(0)
     is_above_10_floor: Optional[int] = Field(0)
@@ -119,7 +121,6 @@ if __name__ == "__main__":
     if model_components:
         test_data = [
             {   
-                "price_per_meter": 12000.0,
                 "area": 100.0,
                 "rooms": 5,
                 "floor": 2,
@@ -150,5 +151,5 @@ if __name__ == "__main__":
     else:
         logger.error("Test cannot be performed because model components were not loaded.")
 
-    logger.info("Starting FastAPI server at http://127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    logger.info(f"Starting FastAPI server at http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port)
