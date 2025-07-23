@@ -1,0 +1,31 @@
+#Step 1 - Builder
+FROM python:3.10-slim as builder
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+RUN pip install poetry
+
+WORKDIR /app
+
+COPY pyproject.toml config.toml ./
+RUN poetry install --no-root --only main,api
+
+
+#Step 2 - Final
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv ./.venv
+
+COPY main.py ./
+COPY src ./src
+COPY models ./models
+COPY config.toml ./
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

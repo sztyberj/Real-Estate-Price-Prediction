@@ -1,31 +1,38 @@
-[project]
+[tool.poetry]
 name = "real_estate_price_prediction"
 version = "0.1.0"
 description = "ML end-to-end project focus on MLOps, models build from scratch and application"
-authors = [
-    {name = "sztyberj",email = "jakub.sztyber.97@gmail.com"}
-]
+authors = ["sztyberj <jakub.sztyber.97@gmail.com>"]
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "pandas (>=2.2.3,<3.0.0)",
-    "numpy (>=2.2.4,<3.0.0)",
-    "selenium (>=4.30.0,<5.0.0)",
-    "webdriver-manager (>=4.0.2,<5.0.0)",
-    "seaborn (>=0.13.2,<0.14.0)",
-    "beautifulsoup4 (>=4.13.4,<5.0.0)",
-    "lxml (>=5.3.2,<6.0.0)",
-    "tqdm (>=4.67.1,<5.0.0)",
-    "joblib (>=1.4.2,<2.0.0)",
-    "scikit-learn (>=1.6.1,<2.0.0)",
-    "toml (>=0.10.2,<0.11.0)",
-    "pydantic (>=2.11.7,<3.0.0)",
-    "fastapi (>=0.116.1,<0.117.0)",
-    "urllib3 (>=2.5.0,<3.0.0)",
-    "uvicorn[standard] (>=0.35.0,<0.36.0)",
-    "streamlit (>=1.47.0,<2.0.0)"
-]
 
+[tool.poetry.dependencies]
+python = ">=3.10"
+toml = ">=0.10.2,<0.11.0"
+urllib3 = ">=2.5.0,<3.0.0"
+pandas = ">=2.2.3,<3.0.0"
+
+[tool.poetry.group.api.dependencies]
+numpy = ">=2.2.4,<3.0.0"
+joblib = ">=1.4.2,<2.0.0"
+scikit-learn = ">=1.6.1,<2.0.0"
+pydantic = ">=2.11.7,<3.0.0"
+fastapi = ">=0.116.1,<0.117.0"
+uvicorn = {extras = ["standard"], version = ">=0.35.0,<0.36.0"}
+xgboost = ">=3.0.2,<4.0.0"
+
+[tool.poetry.group.frontend.dependencies]
+streamlit = ">=1.47.0,<2.0.0"
+requests = "^2.32.3"
+
+[tool.poetry.group.scraping.dependencies]
+selenium = ">=4.30.0,<5.0.0"
+webdriver-manager = ">=4.0.2,<5.0.0"
+beautifulsoup4 = ">=4.13.4,<5.0.0"
+lxml = ">=5.3.2,<6.0.0"
+tqdm = ">=4.67.1,<5.0.0"
+
+[tool.poetry.group.dev.dependencies]
+seaborn = ">=0.13.2,<0.14.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

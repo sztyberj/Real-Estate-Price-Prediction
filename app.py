@@ -2,21 +2,15 @@ import streamlit as st
 import requests
 import json
 import pandas as pd
-import sys
 import toml
 from pathlib import Path
 
-THIS_FILE = Path(__file__).resolve()
-ROOT_DIR = THIS_FILE.parents[0]
-sys.path.append(str(ROOT_DIR))
-
-with open(ROOT_DIR / "config.toml", 'r') as f:
+with open("config.toml", 'r') as f:
     config = toml.load(f)
     config = json.loads(json.dumps(config))
 
-api_config = config.get('model_params', {})
-host = api_config.get('host', "127.0.0.1")
-port = api_config.get('port', 8000)
+host = "api"
+port = 8000
 
 #Page Config
 st.set_page_config(

@@ -13,13 +13,9 @@ pd.set_option('display.float_format', lambda x: f'{x:.4f}')
 pd.set_option('future.no_silent_downcasting', True)
 warnings.filterwarnings('ignore')
 
-THIS_FILE = Path(__file__).resolve()
-ROOT_DIR = THIS_FILE.parents[2]
-sys.path.append(str(ROOT_DIR))
+DATA_DIR = "data/processed"
 
-DATA_DIR = ROOT_DIR / "data" / "processed"
-
-with open(ROOT_DIR / "config.toml", 'r') as f:
+with open("config.toml", 'r') as f:
     config = toml.load(f)
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):

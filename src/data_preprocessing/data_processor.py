@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import sys
 from pathlib import Path
 from datetime import datetime
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -12,13 +11,9 @@ pd.set_option('display.float_format', lambda x: f'{x:.4f}')
 pd.set_option('future.no_silent_downcasting', True)
 warnings.filterwarnings('ignore')
 
-THIS_FILE = Path(__file__).resolve()
-ROOT_DIR = THIS_FILE.parents[2]
-sys.path.append(str(ROOT_DIR))
+DATA_DIR = "data/cleaned"
 
-DATA_DIR = ROOT_DIR / "data" / "cleaned"
-
-with open(ROOT_DIR / "config.toml", 'r') as f:
+with open("config.toml", 'r') as f:
     config = toml.load(f)
 
 class DataProcessor(BaseEstimator, TransformerMixin):

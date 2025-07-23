@@ -1,0 +1,36 @@
+#Step 1 - Builder
+FROM python:3.10-slim as builder
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+RUN pip install poetry
+
+WORKDIR /app
+
+COPY pyproject.toml config.toml ./
+RUN poetry install --no-root --only main,frontend
+
+COPY app.py .
+
+#Step 2 - Final
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv ./.venv
+
+COPY --from=builder /app /app
+
+COPY app.py ./
+COPY src ./src
+COPY models ./models
+COPY config.toml ./
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]

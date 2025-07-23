@@ -5,7 +5,6 @@ from sklearn.metrics import mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import joblib
 import toml
-import sys
 from pathlib import Path
 from src.utils.logging_config import logger
 import json
@@ -13,12 +12,7 @@ from src.eda.data_reader import DataReader
 from src.data_preprocessing.data_processor import DataProcessor 
 from src.data_preprocessing.feature_engineer import FeatureEngineer
 
-THIS_FILE = Path(__file__).resolve()
-ROOT_DIR = THIS_FILE.parents[0]
-print(ROOT_DIR)
-sys.path.append(str(ROOT_DIR))
-
-with open(ROOT_DIR / "config.toml", 'r') as f:
+with open("config.toml", 'r') as f:
     config = toml.load(f)
     config = json.loads(json.dumps(config))
 

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urljoin
 import toml
-
+from src.utils.logging_config import logger
 import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
@@ -34,21 +34,17 @@ LISTING_URL = (
     "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/mazowieckie/"
     "warszawa?page="
 )
-
-# --- project paths -------------------------------------------------------
-THIS_FILE = Path(__file__).resolve()
-ROOT_DIR  = THIS_FILE.parents[2]          # …/Real Estate Price Prediction
-RAW_DIR   = ROOT_DIR / "data" / "raw"
-LOG_DIR   = ROOT_DIR / "src" / "data_collection" / "logs" 
-TMP_DIR   = ROOT_DIR / "data" / "tmp"
+    # …/Real Estate Price Prediction
+RAW_DIR   = "data" / "raw"
+LOG_DIR   = "src" / "data_collection" / "logs" 
+TMP_DIR   = "data" / "tmp"
 for d in (RAW_DIR, LOG_DIR, TMP_DIR):
     d.mkdir(parents=True, exist_ok=True)
     
-sys.path.append(str(ROOT_DIR))
-from src.utils.logging_config import logger
+
 
 # --- load config --------------------------------------------------------
-with open(ROOT_DIR / "config.toml", 'r') as f:
+with open("config.toml", 'r') as f:
     config = toml.load(f)
 
 REQUEST_TIMEOUT = config['data_scraping']['request_timeout']

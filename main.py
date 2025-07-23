@@ -6,26 +6,21 @@ from pathlib import Path
 import uvicorn
 from src.utils.logging_config import logger
 import toml
-import sys
 import json
 import joblib
 import numpy as np
 
-THIS_FILE = Path(__file__).resolve()
-ROOT_DIR = THIS_FILE.parents[0]
-sys.path.append(str(ROOT_DIR))
-
-with open(ROOT_DIR / "config.toml", 'r') as f:
+with open("config.toml", 'r') as f:
     config = toml.load(f)
     config = json.loads(json.dumps(config))
 
 api_config = config.get('api', {})
 version = config.get('model_params',{}).get('version', "")
 title = api_config.get('title', "Real Estate Price Prediction API")
-host = api_config.get('host', "127.0.0.1")
-port = api_config.get('port', 8000)
+host = api_config.get('host')
+port = api_config.get('port')
 
-MODEL_COMPONENTS_PATH = ROOT_DIR / f"models/real_estate_model_components_{version}.joblib"
+MODEL_COMPONENTS_PATH = f"models/real_estate_model_components_{version}.joblib"
 
 try:
     logger.info(f"[TRY] Load model components from {MODEL_COMPONENTS_PATH}")
