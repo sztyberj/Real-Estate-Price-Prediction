@@ -61,7 +61,7 @@ Here's a look at application, where you can interactively predict real estate pr
 ![Streamlit App Screenshot](https://github.com/user-attachments/assets/0b3086a0-7da3-4928-981a-365630270cb4)
 
 ### API Documentation (FastAPI)
-Our API is fully documented and available for testing thanks to the Swagger UI:
+API is fully documented and available for testing thanks to the Swagger UI:
 ![FastAPI Docs Screenshot](https://github.com/user-attachments/assets/f6f3dbf9-98e7-4b3c-8527-08bf6a3c7863)
 
 ### Few plots from EDA
