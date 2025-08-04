@@ -61,7 +61,7 @@ Here's a look at application, where you can interactively predict real estate pr
 ![Streamlit App Screenshot](https://github.com/user-attachments/assets/0b3086a0-7da3-4928-981a-365630270cb4)
 
 ### API Documentation (FastAPI)
-Our API is fully documented and available for testing thanks to the Swagger UI:
+API is fully documented and available for testing thanks to the Swagger UI:
 ![FastAPI Docs Screenshot](https://github.com/user-attachments/assets/f6f3dbf9-98e7-4b3c-8527-08bf6a3c7863)
 
 ### Few plots from EDA
@@ -111,5 +111,17 @@ Make sure you have Docker installed on your machine.
 
 The final model achieves a high level of accuracy in predicting real estate prices. Here's a snapshot of the model's performance:
 
-* **R-squared ($R^2$)**: [0.9924]
-* **Root Mean Squared Error (RMSE)**: [0.0072]
+* **R-squared ($R^2$)**: [0.9897]
+* **Root Mean Squared Error (RMSE)**: [0.0108]
+
+## 🆕 Update 
+`Date: 04.08.2025`
+* **Data Leakage Elimination:** The main pipeline was rebuilt to ensure all data processing and feature engineering operations occur after the train-test split. Removed logic that generated features from the target variable **(price)** before splitting the data, ensuring a reliable model evaluation.
+* **Transformer Refactoring (DataProcessor, FeatureEngineer):** 
+    * Ensured full compatibility with the scikit-learn API through correct inheritance and implementation of the fit method to return self.
+    * Fixed the outlier processing logic, which now learns thresholds exclusively from the training data.
+* **Added Feature Importance Analysis:** Extended the pipeline with a new stage that generates and saves a feature importance plot after the final model is trained. This allows for better results interpretation and analysis of variable impact on predictions.
+* **Configuration and Dependency Improvements:**
+    * Fixed critical syntax errors in the config.toml file that prevented parameters from being loaded correctly.
+    * Added matplotlib and seaborn as project dependencies in Poetry to enable data visualization.
+* **Validation Process Stabilization:** The cross-validation process was debugged and stabilized, ensuring it works correctly with custom transformers within the Pipeline.

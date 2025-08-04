@@ -17,149 +17,116 @@ with open("config.toml", 'r') as f:
     config = toml.load(f)
 
 class DataProcessor(BaseEstimator, TransformerMixin):
-    def __init__(self, config = None):
-        self.config = dict(config) if config is not None else {}
+    def __init__(self, columns_to_check=None, columns_to_clean=None, 
+                 columns_to_drop=None, floor_map=None, outlier_lower=0.05, 
+                 outlier_upper=0.95, **kwargs):
 
-        dp_config = self.config.get('data_processing', {})
-
-        self.columns_to_check = dp_config.get('columns_to_check', [])
-        self.columns_to_clean = dp_config.get('columns_to_clean', [])
-        self.columns_to_drop = dp_config.get('columns_to_drop', [])
-
-        self.floor_map = dict(dp_config.get('floor_map', {}))
-
-        self.lower = dp_config.get('outlier_lower', 0.05)
-        self.upper = dp_config.get('outlier_upper', 0.95)
+        self.columns_to_check = columns_to_check if columns_to_check is not None else []
+        self.columns_to_clean = columns_to_clean if columns_to_clean is not None else []
+        self.columns_to_drop = columns_to_drop if columns_to_drop is not None else []
+        self.floor_map = floor_map if floor_map is not None else {}
+        self.outlier_lower = outlier_lower
+        self.outlier_upper = outlier_upper
+        
+        self.year_built_median_ = None
+        self.rent_median_ = None
+        self.outlier_thresholds_ = {}
     
     @staticmethod
-    def save_to_csv(df: pd.DataFrame , version: str):
+    def save_to_csv(df: pd.DataFrame, version: str):
         logger.info(f"DataProcessor: save to .csv as {version} version")
+        Path(DATA_DIR).mkdir(exist_ok=True)
         df.to_csv(f"{DATA_DIR}/v{version}_{datetime.today().strftime('%Y_%m_%d')}.csv", sep=";", index=False)
 
     def fit(self, X, y=None):
-        logger.info("Fit")
+        logger.info("DataProcessor: Fitting...")
         temp_df = X.copy()
 
-        #fit median year_built
+        # Learn median for year_built
         if 'year_built' in temp_df.columns:
-            self.year_built_median = temp_df['year_built'].median()
-            logger.info(f"DataProcessor: Learned median for 'year_built'.")
-        else:
-            self.year_built_median = None
+            self.year_built_median_ = temp_df['year_built'].median()
+            logger.info(f"DataProcessor: Learned median for 'year_built': {self.year_built_median_}")
 
-        #fit median rent
+        # Learn median for rent
         if 'rent' in temp_df.columns:
-            temp_df['rent'] = pd.to_numeric(temp_df['rent'], errors='coerce')
-            self.rent_median = temp_df['rent'].median()
-            logger.info(f"DataProcessor: Learned median for 'rent'.")
-        else:
-            self.rent_median = None
+            self.rent_median_ = temp_df['rent'].median()
+            logger.info(f"DataProcessor: Learned median for 'rent': {self.rent_median_}")
+
+        # Learn outlier thresholds for numerical columns
+        for col in self.columns_to_clean:
+            if col in temp_df.columns:
+                # Convert to numeric first
+                temp_df[col] = pd.to_numeric(temp_df[col], errors='coerce')
+                if temp_df[col].notna().sum() > 0:  # Only if we have valid data
+                    lower_threshold = temp_df[col].quantile(self.outlier_lower)
+                    upper_threshold = temp_df[col].quantile(self.outlier_upper)
+                    self.outlier_thresholds_[col] = (lower_threshold, upper_threshold)
+                    logger.info(f"DataProcessor: Learned outlier thresholds for '{col}': {lower_threshold:.2f} - {upper_threshold:.2f}")
 
         return self
+
+    def transform(self, X):
+        logger.info("DataProcessor: Transforming...")
+        df_transformed = X.copy()
+
+        # Drop specified columns
+        cols_to_drop = [col for col in self.columns_to_drop if col in df_transformed.columns]
+        if cols_to_drop:
+            df_transformed.drop(columns=cols_to_drop, inplace=True)
+            logger.info(f"DataProcessor: Dropped columns: {cols_to_drop}")
+
+        # Clean numerical columns
+        for col in self.columns_to_clean:
+            if col in df_transformed.columns:
+                df_transformed[col] = pd.to_numeric(df_transformed[col], errors='coerce')
+                
+                if col in self.outlier_thresholds_:
+                    lower_thresh, upper_thresh = self.outlier_thresholds_[col]
+                    
+                    # Count outliers before clipping
+                    outliers_lower = (df_transformed[col] < lower_thresh).sum()
+                    outliers_upper = (df_transformed[col] > upper_thresh).sum()
+                    
+                    # Clip values instead of removing rows
+                    df_transformed[col] = df_transformed[col].clip(lower=lower_thresh, upper=upper_thresh)
+                    
+                    if outliers_lower + outliers_upper > 0:
+                        logger.info(f"DataProcessor: Clipped {outliers_lower + outliers_upper} outliers in '{col}' "
+                                  f"(lower: {outliers_lower}, upper: {outliers_upper})")
+
+        # Handle missing values
+        if 'year_built' in df_transformed.columns and self.year_built_median_ is not None:
+            missing_count = df_transformed['year_built'].isnull().sum()
+            if missing_count > 0:
+                df_transformed['year_built'].fillna(self.year_built_median_, inplace=True)
+                logger.info(f"DataProcessor: Filled {missing_count} missing values in 'year_built' with median: {self.year_built_median_}")
+
+        if 'rent' in df_transformed.columns and self.rent_median_ is not None:
+            missing_count = df_transformed['rent'].isnull().sum()
+            if missing_count > 0:
+                df_transformed['rent'].fillna(self.rent_median_, inplace=True)
+                logger.info(f"DataProcessor: Filled {missing_count} missing values in 'rent' with median: {self.rent_median_}")
+
+        # Apply floor mapping
+        if 'floor' in df_transformed.columns and self.floor_map:
+            for floor_name, floor_value in self.floor_map.items():
+                mask = df_transformed['floor'].astype(str).str.lower() == floor_name.lower()
+                df_transformed.loc[mask, 'floor'] = floor_value
+            
+            # Convert floor to numeric
+            df_transformed['floor'] = pd.to_numeric(df_transformed['floor'], errors='coerce')
+            logger.info(f"DataProcessor: Applied floor mapping: {self.floor_map}")
+
+        # Handle categorical columns - fill missing values with 'unknown'
+        for col in self.columns_to_check:
+            if col in df_transformed.columns:
+                missing_count = df_transformed[col].isnull().sum()
+                if missing_count > 0:
+                    df_transformed[col].fillna('unknown', inplace=True)
+                    logger.info(f"DataProcessor: Filled {missing_count} missing values in '{col}' with 'unknown'")
+
+        # Reset index (though no rows should be removed now)
+        df_transformed.reset_index(drop=True, inplace=True)
         
-    def transform(self, X, y=None):
-        logger.info("Transform")
-        df = X.copy()
-        #price
-        if 'price' in df.columns:
-            df['price'] = pd.to_numeric(df['price'], errors='coerce')
-            df = df.dropna(subset=['price'])
-            logger.info("DataProcessor: 'price' transformed.")
-
-        #ppm
-        if 'price_per_meter' in df.columns:
-            df.loc[:,'price_per_meter'] = df['price_per_meter'].fillna(df['price'] / df['area'])
-            df['price_per_meter'] = pd.to_numeric(df['price_per_meter'], errors='coerce')
-            logger.info("DataProcessor: 'ppm' transformed.")
-
-        #rooms
-        if 'rooms' in df.columns:
-            df.loc[:, 'rooms'] = pd.to_numeric(df['rooms'], errors='coerce')
-            df = df.dropna(subset=['rooms'])
-            logger.info("DataProcessor: 'rooms' transformed.")
-
-        #building_type
-        if 'building_type' in df.columns:
-            df['building_type'] = df['building_type'].fillna('unknown')
-            logger.info("DataProcessor: 'building_type' filled.")
-
-        #year_built
-        if 'year_built' in df.columns:
-            df.loc[df['year_built'] < 1300, 'year_built'] = np.nan
-            df.loc[:,'year_built'] = df['year_built'].fillna(self.year_built_median)
-            logger.info("DataProcessor: 'year_built' filled.")
-        
-        #rent
-        if 'rent' in df.columns:
-            df.loc[:,'rent'] = df['rent'].fillna(self.rent_median)
-            logger.info("DataProcessor: 'rent' filled.")
-
-        #drop_na
-        existing_columns_to_check = [col for col in self.columns_to_check if col in df.columns]
-        if existing_columns_to_check:
-            df = df.dropna(subset=existing_columns_to_check)
-            logger.info(f"DataProcessor: 'na' i columns: {existing_columns_to_check}  dropped.")
-
-        #heating
-        if 'heating' in df.columns:
-            df.loc[:,'heating'] = df['heating'].fillna('unknown')
-            logger.info("DataProcessor: 'heating' filled.")
-
-        #duplicates
-        required_columns = {'price', 'url'}
-        if required_columns.issubset(df.columns):
-            df = df.drop_duplicates(subset=['price', 'url'])
-            df = df.reset_index(drop=True)
-            logger.info("DataProcessor: duplicates dropped.")
-
-        #clean_outliers
-        existing_columns_to_clean = [col for col in self.columns_to_clean if col in df.columns]
-        if existing_columns_to_clean:
-            for i in existing_columns_to_clean:
-                q_low = df[i].quantile(self.lower)
-                q_high = df[i].quantile(self.upper)
-        
-                df.loc[:,i] = df[i].clip(lower=q_low, upper=q_high)
-                logger.info(f"DataProcessor: {i} outliers cleaned.")
-
-        #drop_columns
-        existing_columns_to_drop = [col for col in self.columns_to_drop if col in df.columns]
-        if existing_columns_to_drop:
-            df = df.drop(columns=existing_columns_to_drop, errors='ignore')
-            logger.info(f"DataProcessor: columns {existing_columns_to_drop} dropped.")
-
-        if 'floor' in df.columns:
-            if not df['floor'].isnull().all():
-                df[['floor', 'building_max_floor']] = df['floor'].astype(str).str.split('/', expand=True)
-
-            df['floor'] = df['floor'].replace(self.floor_map)
-            df['building_max_floor'] = pd.to_numeric(df['building_max_floor'], errors='coerce')
-
-            df.loc[df['floor'] == 'poddasze', 'floor'] = df['building_max_floor'] + 1
-
-            df['is_above_10_floor'] = df['floor'].astype(str).str.contains('>').astype(int)
-
-            df['floor'] = df['floor'].astype(str).str.replace('>', '', regex=False)
-            df['floor'] = pd.to_numeric(df['floor'], errors='coerce')
-
-            df.loc[df['building_max_floor'] > 60, 'building_max_floor'] = np.nan
-
-            if 'floor' in df.columns and 'building_max_floor' in df.columns:
-                df = df.dropna(subset=['floor', 'building_max_floor'])
-
-            logger.info("DataProcessor: 'floor' and 'building_max_floor' processed.")
-        
-        return df
-
-if __name__ == "__main__":
-    #Run from ./Real Estate Price Prediction/
-    from src.eda.data_reader import DataReader
-    reader = DataReader()
-    df = reader.read()
-
-    data_processor = DataProcessor(config)
-    data_processor.fit(df)
-    df = data_processor.transform(df)
-    data_processor.save_to_csv(df, version="T")
-
-    print(df)
+        logger.info("DataProcessor: Transformation complete.")
+        return df_transformed
