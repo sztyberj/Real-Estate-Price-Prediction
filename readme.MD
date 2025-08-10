@@ -111,8 +111,27 @@ Make sure you have Docker installed on your machine.
 
 The final model achieves a high level of accuracy in predicting real estate prices. Here's a snapshot of the model's performance:
 
-* **R-squared ($R^2$)**: [0.9897]
-* **Root Mean Squared Error (RMSE)**: [0.0108]
+* R-squared ($R^2$): [0.9897] <- Data Leakage
+* Root Mean Squared Error (RMSE): [0.0108]
+
+**New values after 🆕 Update**
+
+* **R-squared ($R^2$)**: [0.8709]
+
+**Top 10 feature for XGB**
+
+| | Feature | Importance |
+|---|---|---|
+| 0 | rooms | 0.1836 |
+| 1 | area | 0.1650 |
+| 2 | building_max_floor | 0.1243 |
+| 3 | rooms_per_area | 0.0958 |
+| 4 | building_type_freq | 0.0734 |
+| 5 | district_freq | 0.0687 |
+| 6 | rent | 0.0570 |
+| 7 | garage | 0.0544 |
+| 8 | is_above_10_floor| 0.0421 |
+| 9 | heating_freq | 0.0357 |
 
 ## 🆕 Update 
 `Date: 10.08.2025`
