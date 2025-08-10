@@ -2,32 +2,33 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import pandas as pd
 from typing import List, Optional
-from pathlib import Path
 import uvicorn
 from src.utils.logging_config import logger
 import toml
 import json
 import joblib
-import numpy as np
 
 with open("config.toml", 'r') as f:
     config = toml.load(f)
     config = json.loads(json.dumps(config))
 
 api_config = config.get('api', {})
-version = config.get('model_params',{}).get('version', "")
+pipeline_params = config.get('pipeline', {})
+version = pipeline_params['version']
+print(f'Pipeline version {version}')
 title = api_config.get('title', "Real Estate Price Prediction API")
 host = api_config.get('host')
 port = api_config.get('port')
 
-MODEL_COMPONENTS_PATH = f"models/real_estate_model_components_{version}.joblib"
-
 try:
-    logger.info(f"[TRY] Load model components from {MODEL_COMPONENTS_PATH}")
-    model_components = joblib.load(MODEL_COMPONENTS_PATH)
+    logger.info(f"[TRY] Load model components")
+    loaded_X_pipeline = joblib.load(f'models/X_pipeline_{version}.joblib')
+    loaded_y_scaler = joblib.load(f'models/y_scaler_{version}.joblib')
+    loaded_model = joblib.load(f'models/model_{version}.joblib')
+    logger.info("Successfully loaded all model components.")
+
 except FileNotFoundError:
-    model_components = None
-    logger.error(f"Error: Can't find model components at {MODEL_COMPONENTS_PATH}")
+    logger.error(f"Error: Can't find model components")
 
 #BaseModel Data
 class RawDataPoint(BaseModel):
@@ -38,79 +39,49 @@ class RawDataPoint(BaseModel):
     year_built: Optional[int] = None
     district: Optional[str] = None
     market_type: Optional[str] = None
+    furnished: Optional[bool] = None
+    elevator: Optional[bool] = None
     building_type: Optional[str] = None
     finish_status: Optional[str] = None
     ownership: Optional[str] = None
     heating: Optional[str] = None
     garage: Optional[bool] = Field(None)
-    description: Optional[str] = Field("")
-    price_per_meter: Optional[float] = Field(0.0)
     rent: Optional[int] = Field(0)
     is_above_10_floor: Optional[int] = Field(0)
+    
+def make_prediction(raw_data_df):    
+    processed_X = loaded_X_pipeline.transform(raw_data_df)
+    prediction_scaled = loaded_model.predict(processed_X)
+    prediction_original_scale = loaded_y_scaler.inverse_transform(prediction_scaled.reshape(-1, 1))
+    
+    return prediction_original_scale.ravel()
 
 app = FastAPI(title=title)
 
 @app.post("/predict/")
 def predict(raw_data_points: List[RawDataPoint]):
-    if model_components is None:
+    if loaded_model is None or loaded_y_scaler is None or loaded_X_pipeline is None:
         logger.error("Model components are not loaded.")
         return {"error": "Model is not available. Check server logs."}
 
     input_df = pd.DataFrame([item.model_dump() for item in raw_data_points])
 
-    #Prepare data
-    bool_cols = ['garage']
-    for col in bool_cols:
-        if col in input_df.columns:
-            input_df[col] = input_df[col].apply(lambda x: 1 if x is True else 0)
-
-    temp_floor_col = []
-    for _, row in input_df.iterrows():
-        floor, max_floor = row.get('floor'), row.get('building_max_floor')
-        if pd.notna(max_floor):
-            temp_floor_col.append(f"{int(floor)}/{int(max_floor)}")
-        else:
-            temp_floor_col.append(str(int(floor)))
-    input_df['floor'] = temp_floor_col
-
-    if 'price' not in input_df.columns:
-        input_df['price'] = 0
-
-    logger.info("Step 1: Applying data_processor")
-    processed_df = model_components['data_processor'].transform(input_df)
-
-    if 'price' in processed_df.columns:
-        processed_df = processed_df.drop(columns=['price'])
-
-    logger.info("Step 2: Applying feature_engineer")
-    pipeline = model_components['feature_model_pipeline']
-    engineered_df = pipeline.named_steps['feature_engineering'].transform(processed_df)
-
-    logger.info("Ensuring correct feature order for the model")
-    model_features = pipeline.named_steps['model'].get_booster().feature_names
-    engineered_df = engineered_df[model_features]
-
-    logger.info("Step 3: Predicting with the model")
-    prediction_scaled = pipeline.named_steps['model'].predict(engineered_df)
-
-    #Predict
-    logger.info("Step 4: Inverse transforming the scaled prediction")
-    prediction = model_components['y_scaler'].inverse_transform(prediction_scaled.reshape(-1, 1))
+    prediction = make_prediction(input_df)
 
     logger.info(f"Prediction successful. Result: {prediction.flatten().tolist()}")
     return {"predictions": prediction.flatten().tolist()}
 
 @app.get("/")
 def root():
-    if model_components:
-        return {"message": f"Model components from '{MODEL_COMPONENTS_PATH.name}' are ready to use."}
+    if loaded_model and loaded_y_scaler and loaded_X_pipeline:
+        return {"message": f"Model components are ready to use."}
     else:
         return {"error": "Model components are not available. Check server logs."}
     
 if __name__ == "__main__":
     logger.info("--- Running a simple prediction test ---")
     
-    if model_components:
+    if loaded_model or loaded_y_scaler or loaded_X_pipeline:
         test_data = [
             {   
                 "area": 100.0,
@@ -125,9 +96,9 @@ if __name__ == "__main__":
                 "ownership": "pełna własność",
                 "heating": "miejskie",
                 "garage": True,
-                "balcony": True,
-                "elevator": False,
-                "furnished": False,
+                "balcony": False,
+                "elevator": True,
+                "furnished": True,
             }
         ]
         

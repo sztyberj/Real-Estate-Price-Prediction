@@ -9,23 +9,31 @@ workers = 8
 
 [data_processing]
 columns_to_check = ["market_type", "furnished", "district", "finish_status", "ownership", "elevator", "year_built"]
-columns_to_clean = ["price", "price_per_meter", "rent"]
-columns_to_drop = ["source", "date", "url", "title", "ad_id", "external_id"]
+columns_to_drop = ["source", "date", "url", "title", "ad_id", "external_id", "price_per_meter"]
 outlier_lower = 0.05
 outlier_upper = 0.95
 floor_map = { "suterena" = -1, "parter" = 0 }
 
 [feature_engineering]
 frequency_encode_cols = ["district", "heating", "ownership", "building_type", "finish_status"]
-one_hot_encode_cols = []
 drop_original_onehot = true
 binary_reduce_cols = { "market_type" = "pierwotny" }
 columns_to_drop_final = ["description", "district","building_type", "ownership", "heating", "building_type", "balcony", "elevator", "furnished", "finish_status"]
 top_building_types = ["apartment", "block", "tenement"]
-columns_to_scale = ["price_per_meter", "area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq", "heating_freq", "ownership_freq", "building_type_freq", "finish_status_freq"]
+columns_to_scale = ["area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq", "heating_freq", "ownership_freq", "building_type_freq", "finish_status_freq"]
 
 [model_params]
-version = "1.3"
+random_state=42
+n_jobs=-1
+colsample_bytree=0.7
+learning_rate=0.1
+max_depth=7
+n_estimators=200
+subsample=1.0
+
+[pipeline]
+version = "1.4"
+
 
 [api]
 title = "Real Estate Price Prediction"

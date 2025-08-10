@@ -88,6 +88,8 @@ with st.form("prediction_form"):
     amenities_col1, amenities_col2, amenities_col3, amenities_col4 = st.columns(4)
     with amenities_col1:
         garage = st.checkbox("Garaż", value=True)
+        elevator = st.checkbox("Winda", value=True)
+        furnished = st.checkbox("Wykończone", value=True)
     
     submit_button = st.form_submit_button(label="Predykcja ceny")
 
@@ -103,6 +105,8 @@ if submit_button:
             "year_built": year_built,
             "district": district.lower(),
             "market_type": market_type,
+            "furnished": furnished,
+            "elevator": elevator,
             "building_type": building_type_map.get(building_type_pl),
             "finish_status": finish_status_map.get(finish_status_pl),
             "ownership": ownership_map.get(ownership_pl),
