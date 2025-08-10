@@ -115,13 +115,12 @@ The final model achieves a high level of accuracy in predicting real estate pric
 * **Root Mean Squared Error (RMSE)**: [0.0108]
 
 ## 🆕 Update 
-`Date: 04.08.2025`
+`Date: 10.08.2025`
 * **Data Leakage Elimination:** The main pipeline was rebuilt to ensure all data processing and feature engineering operations occur after the train-test split. Removed logic that generated features from the target variable **(price)** before splitting the data, ensuring a reliable model evaluation.
 * **Transformer Refactoring (DataProcessor, FeatureEngineer):** 
     * Ensured full compatibility with the scikit-learn API through correct inheritance and implementation of the fit method to return self.
-    * Fixed the outlier processing logic, which now learns thresholds exclusively from the training data.
-* **Added Feature Importance Analysis:** Extended the pipeline with a new stage that generates and saves a feature importance plot after the final model is trained. This allows for better results interpretation and analysis of variable impact on predictions.
+* **Feature Importance Analysis:** Conducted a feature importance analysis for the tuned XGBoost model, identifying the most influential features that drive price predictions and improving model interpretability.
+* **GridSearchCV:** Implemented a systematic hyperparameter search using GridSearchCV for the top-performing models (Random Forest and XGBoost), which significantly improved their predictive accuracy based on cross-validated R2 scores
 * **Configuration and Dependency Improvements:**
     * Fixed critical syntax errors in the config.toml file that prevented parameters from being loaded correctly.
     * Added matplotlib and seaborn as project dependencies in Poetry to enable data visualization.
-* **Validation Process Stabilization:** The cross-validation process was debugged and stabilized, ensuring it works correctly with custom transformers within the Pipeline.
