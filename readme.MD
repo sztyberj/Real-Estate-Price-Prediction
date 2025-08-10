@@ -58,7 +58,7 @@ The project is organized into several key stages, each handled by dedicated scri
 
 ### Streamlit Interface
 Here's a look at application, where you can interactively predict real estate prices:
-![Streamlit App Screenshot](https://github.com/user-attachments/assets/0b3086a0-7da3-4928-981a-365630270cb4)
+![Streamlit App Screenshot](https://github.com/user-attachments/assets/30de4b39-7196-4769-baac-e9a4b3ade051)
 
 ### API Documentation (FastAPI)
 API is fully documented and available for testing thanks to the Swagger UI:
