@@ -58,7 +58,7 @@ The project is organized into several key stages, each handled by dedicated scri
 
 ### Streamlit Interface
 Here's a look at application, where you can interactively predict real estate prices:
-![Streamlit App Screenshot](https://github.com/user-attachments/assets/0b3086a0-7da3-4928-981a-365630270cb4)
+![Streamlit App Screenshot](https://github.com/user-attachments/assets/30de4b39-7196-4769-baac-e9a4b3ade051)
 
 ### API Documentation (FastAPI)
 API is fully documented and available for testing thanks to the Swagger UI:
@@ -108,30 +108,71 @@ Make sure you have Docker installed on your machine.
 ---
 
 ## 📈 Results
+### Step: Model selection
 
-The final model achieves a high level of accuracy in predicting real estate prices. Here's a snapshot of the model's performance:
+| |Model|Mean R2|Std R2|Mean MAE|Mean RMSE|Mean Fit Time (s)
+|---|---|---|---|---|---|---
+0|Random Forest Regressor|0.8657|0.0219|133395.1015|339495.5464|1.7031
+1|XGBoost Regressor|0.8603|0.0321|130449.8815|350956.4638|1.5560
+2|Gradient Boosting Regressor|0.8427|0.0391|171058.4972|366639.7590|1.0787
+3|Decision Tree Regressor|0.7702|0.0500|171285.2276|443730.8175|0.0580
+4|Linear Regression|0.6102|0.1207|267509.8199|568492.1754|0.0083
+
+Ensemble models (Random Forest, XGBoost, Gradient Boosting) significantly outperform simpler models like Linear Regression and a single Decision Tree, indicating complex, non-linear relationships in the data. Random Forest and XGBoost are the clear top-tier contenders, with very similar high performance. 
+
+* **Random Forest** achieved the highest R² score (0.8657) and the highest stability (lowest Std R², 0.0219), making it the most consistent model \
+* **XGBoost** delivered the lowest Mean Absolute Error (MAE) of ~130.5k PLN and was over 14 times faster to train than Random Forest.
+
+### Step: Hiperparameters tunining with GridSearchCV
+
+**-- Random Forest Regressor ---**
+> Fitting 5 folds for each of 24 candidates, totalling 120 fits\
+>--- Best Results for Random Forest ---\
+> Best Parameters: {'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 100}\
+> Best R2 Score (cross-validation): 0.8592\
+>MAE for the Best Model (based on R2): 133755.26 PLN
+
+
+**-- XGBoost Regressor ---**
+> Fitting 5 folds for each of 72 candidates, totalling 360 fits\
+>--- Best Results for XGBoost ---\
+> Best Parameters: {'colsample_bytree': 0.7, 'learning_rate': 0.1, 'max_depth': 7, 'n_estimators': 200, 'subsample': 1.0}\
+> Best R2 Score (cross-validation): 0.8735\
+> MAE for the Best Model (based on R2): 125947.27 PLN
+
+### Step: Final test on test dataset
+
+**New values after 🆕 Update**
+
+--- Random Forest ---\
+Final R2 Score: 0.8570\
+Final Mean Absolute Error (MAE): 141240.47 PLN
+
+--- XGBoost ---\
+Final R2 Score: 0.8410\
+Final Mean Absolute Error (MAE): 137355.36 PLN
+
+Following the final evaluation on the test set, the XGBoost model has been selected as the final production model. Despite achieving a slightly lower R-squared score (0.8410 vs. 0.8570 for Random Forest), this model demonstrated superior practical accuracy by achieving a lower Mean Absolute Error (MAE) of nearly 4,000 PLN (137.4k PLN vs. 141.2k PLN). For business objectives, minimizing the real-world prediction error is the main priority, making XGBoost the more valuable tool. Furthermore, an additional advantage observed during the tuning phase is its significantly higher computational efficiency, which facilitates future maintenance and model retraining.
+
+**Old values**
 
 * R-squared ($R^2$): [0.9897] <- Data Leakage
 * Root Mean Squared Error (RMSE): [0.0108]
 
-**New values after 🆕 Update**
-
-* **R-squared ($R^2$)**: [0.8709]
-
 **Top 10 feature for XGB**
 
-| | Feature | Importance |
-|---|---|---|
-| 0 | rooms | 0.1836 |
-| 1 | area | 0.1650 |
-| 2 | building_max_floor | 0.1243 |
-| 3 | rooms_per_area | 0.0958 |
-| 4 | building_type_freq | 0.0734 |
-| 5 | district_freq | 0.0687 |
-| 6 | rent | 0.0570 |
-| 7 | garage | 0.0544 |
-| 8 | is_above_10_floor| 0.0421 |
-| 9 | heating_freq | 0.0357 |
+| | Feature | Importance
+|---|---|---
+0|area|0.2783
+1|building_max_floor|0.1383
+2|district_freq|0.0909
+3|rent|0.0700
+4|is_above_10_floor|0.0637
+5|heating_freq|0.0584
+6|rooms_per_area|0.0535
+7|garage|0.0499
+8|rooms|0.0473
+9|building_type_freq|0.0446
 
 ## 🆕 Update 
 `Date: 10.08.2025`

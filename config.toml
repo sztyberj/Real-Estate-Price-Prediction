@@ -23,7 +23,7 @@ top_building_types = ["apartment", "block", "tenement"]
 columns_to_scale = ["area", "rooms", "floor", "year_built", "rent", "building_max_floor", "rooms_per_area", "district_freq", "heating_freq", "ownership_freq", "building_type_freq", "finish_status_freq"]
 
 [model_params]
-random_state=42
+random_state=14
 n_jobs=-1
 colsample_bytree=0.7
 learning_rate=0.1
@@ -32,8 +32,7 @@ n_estimators=200
 subsample=1.0
 
 [pipeline]
-version = "1.4"
-
+version = "1.5"
 
 [api]
 title = "Real Estate Price Prediction"

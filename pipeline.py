@@ -64,18 +64,13 @@ X_test = pd.DataFrame(X_test_processed, index=X_test.index[:len(X_test_processed
 y_train_synced = y_train.loc[X_train.index]
 y_test_synced = y_test.loc[X_test.index]
 
-y_scaler = StandardScaler()
-y_train = y_scaler.fit_transform(y_train_synced.to_frame())
-y_test = y_scaler.transform(y_test_synced.to_frame())
-
-y_train = y_train.ravel()
-y_test = y_test.ravel()
+y_train = y_train_synced.ravel()
+y_test = y_test_synced.ravel()
 
 model = xgb.XGBRegressor(**model_params)
 
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
-y_pred = y_scaler.inverse_transform(y_pred.reshape(-1, 1))
 print(y_pred[:15].ravel())
 
 X_pipeline.named_steps['preprocessor'].set_production_mode()
@@ -84,7 +79,6 @@ X_pipeline.named_steps['preprocessor'].set_production_mode()
 logger.info("Saving components...")
 Path("models").mkdir(exist_ok=True)
 joblib.dump(X_pipeline, f'models/X_pipeline_{version}.joblib')
-joblib.dump(y_scaler, f'models/y_scaler_{version}.joblib')
 joblib.dump(model, f'models/model_{version}.joblib')
 
-logger.info(f"X_pipeline, y_scaler and model saved successfully.")
+logger.info(f"X_pipeline and model saved successfully.")

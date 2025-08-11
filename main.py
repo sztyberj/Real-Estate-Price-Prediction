@@ -23,7 +23,6 @@ port = api_config.get('port')
 try:
     logger.info(f"[TRY] Load model components")
     loaded_X_pipeline = joblib.load(f'models/X_pipeline_{version}.joblib')
-    loaded_y_scaler = joblib.load(f'models/y_scaler_{version}.joblib')
     loaded_model = joblib.load(f'models/model_{version}.joblib')
     logger.info("Successfully loaded all model components.")
 
@@ -52,15 +51,14 @@ class RawDataPoint(BaseModel):
 def make_prediction(raw_data_df):    
     processed_X = loaded_X_pipeline.transform(raw_data_df)
     prediction_scaled = loaded_model.predict(processed_X)
-    prediction_original_scale = loaded_y_scaler.inverse_transform(prediction_scaled.reshape(-1, 1))
     
-    return prediction_original_scale.ravel()
+    return prediction_scaled.ravel()
 
 app = FastAPI(title=title)
 
 @app.post("/predict/")
 def predict(raw_data_points: List[RawDataPoint]):
-    if loaded_model is None or loaded_y_scaler is None or loaded_X_pipeline is None:
+    if loaded_model is None or loaded_X_pipeline is None:
         logger.error("Model components are not loaded.")
         return {"error": "Model is not available. Check server logs."}
 
@@ -73,7 +71,7 @@ def predict(raw_data_points: List[RawDataPoint]):
 
 @app.get("/")
 def root():
-    if loaded_model and loaded_y_scaler and loaded_X_pipeline:
+    if loaded_model and loaded_X_pipeline:
         return {"message": f"Model components are ready to use."}
     else:
         return {"error": "Model components are not available. Check server logs."}
@@ -81,7 +79,7 @@ def root():
 if __name__ == "__main__":
     logger.info("--- Running a simple prediction test ---")
     
-    if loaded_model or loaded_y_scaler or loaded_X_pipeline:
+    if loaded_model or loaded_X_pipeline:
         test_data = [
             {   
                 "area": 100.0,
